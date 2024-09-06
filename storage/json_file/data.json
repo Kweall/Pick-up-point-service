@@ -1,0 +1,15 @@
+{
+    "users": [
+        {
+            "userID": 10,
+            "items": [
+                {
+                    "sku": 10,
+                    "date": "08.09.2024",
+                    "at the pick-up point": true,
+                    "has returned": true
+                }
+            ]
+        }
+    ]
+}

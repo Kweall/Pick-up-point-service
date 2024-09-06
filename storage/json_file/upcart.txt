@@ -1,0 +1,117 @@
+package json_file
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+)
+
+type OutputData struct {
+	Users []User `json:"users"`
+}
+
+type User struct {
+	UserID int64  `json:"userID"`
+	Items  []Item `json:"items"`
+}
+
+type Item struct {
+	ID    int64  `json:"sku"`
+	Date  string `json:"date"`
+	Valid bool   `json:"v pvz"`
+}
+
+type Storage struct {
+	// userID, skuID, date
+	Carts map[int64]map[int64]string
+	Path  string
+}
+
+func NewStorage(path string) (*Storage, error) {
+	f, err := os.OpenFile(path, os.O_CREATE, 0666)
+	//_, err := os.Create(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	//return &Storage{Path: path}, nil
+	return &Storage{Carts: make(map[int64]map[int64]string), Path: path}, nil
+}
+
+func (s *Storage) AddItemToCart(userID, skuID int64, date string) (err error) {
+	err = s.readDataFromFile()
+	if err != nil {
+		return err
+	}
+	if _, ok := s.Carts[userID]; !ok {
+		s.Carts[userID] = make(map[int64]string)
+	}
+
+	s.Carts[userID][skuID] = date
+
+	//fmt.Println(s.Carts)
+	data := OutputData{[]User{{userID, []Item{{skuID, date, true}}}}}
+
+	err = s.WriteDataFromFile(data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Storage) GetCartByUser(userID int64) (err error) {
+	// fmt.Println(s.Carts[userID])
+	return nil
+}
+
+func (s *Storage) readDataFromFile() (err error) {
+	var file *os.File
+	file, err = os.OpenFile(s.Path, os.O_RDWR, 0666)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	var data OutputData
+	decoder := json.NewDecoder(file)
+	//err = decoder.Decode(&s.Carts)
+	err = decoder.Decode(&data)
+	if err != nil {
+		return err
+	}
+
+	//Преобразование данных в карту
+	// s.Carts = make(map[int64]map[int64]string)
+	// for _, user := range data.Users {
+	// 	if _, ok := s.Carts[int64(user.UserID)]; !ok {
+	// 		s.Carts[int64(user.UserID)] = make(map[int64]string)
+	// 	}
+	// 	for _, item := range user.Items {
+	// 		s.Carts[int64(user.UserID)][int64(item.ID)] = item.Date
+	// 	}
+	// }
+	return nil
+}
+
+func (s *Storage) WriteDataFromFile(data OutputData) (err error) {
+	var file *os.File
+	file, err = os.OpenFile(s.Path, os.O_RDWR|os.O_TRUNC, 0666)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	fmt.Println(s)
+	fmt.Println(s.Carts)
+	// data := OutputData{[]User{{3, []Item{{3}, {5}}}}}
+
+	//data := OutputData{[]User{{3, []Item{{3, "kakashke"}}}}}
+	encoder := json.NewEncoder(file)
+	//err = encoder.Encode(s.Carts)
+	err = encoder.Encode(data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
