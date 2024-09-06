@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// gibbon
 type OutputData struct {
 	Users []User `json:"users"`
 }
