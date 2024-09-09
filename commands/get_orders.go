@@ -14,22 +14,22 @@ func GetOrders(parts []string) error {
 		return fmt.Errorf("can't init storage: %v", err)
 	}
 
-	data, err := storage.ReadDataFromFile()
+	err = storage.ReadDataFromFile()
 	if err != nil {
 		return fmt.Errorf("failed to read from file: %v", err)
 	}
 
 	if len(parts) < 2 {
-		fmt.Println("Should be at least 1 argument: userID (int)")
+		fmt.Println("Should be at least 1 argument: clientID (int)")
 		return nil
 	} else if len(parts) > 3 {
-		fmt.Println("Should be maximum 2 arguments: userID (int) and count of orders you want to get")
+		fmt.Println("Should be maximum 2 arguments: clientID (int) and count of orders you want to get")
 		return nil
 	}
 
-	userID, err := strconv.Atoi(parts[1])
+	clientID, err := strconv.Atoi(parts[1])
 	if err != nil {
-		fmt.Println("userID isn't correct")
+		fmt.Println("clientID is incorrect")
 		return err
 	}
 
@@ -38,29 +38,28 @@ func GetOrders(parts []string) error {
 	if len(parts) == 3 {
 		limit, err = strconv.Atoi(parts[2])
 		if err != nil {
-			fmt.Println("limit isn't correct")
+			fmt.Println("limit is incorrect")
 			return err
 		}
 	}
 
 	// Поиск заказов пользователя
-	var orders []json_file.Item
-	for _, user := range data.Users {
-		if user.UserID == int64(userID) {
-			orders = user.Items
-			break
+	var orders []*json_file.Order
+	for _, order := range storage.Orders {
+		if order.ClientID == int64(clientID) {
+			orders = append(orders, order)
 		}
 	}
 
 	if len(orders) == 0 {
-		fmt.Printf("No orders found for userID: %v\n", userID)
+		fmt.Printf("No orders found for clientID: %v\n", clientID)
 		return nil
 	}
 
 	// Сортируем заказы по дате (начиная с нового)
 	sort.Slice(orders, func(i, j int) bool {
-		date1, _ := time.Parse("02.01.2006", orders[i].Date)
-		date2, _ := time.Parse("02.01.2006", orders[j].Date)
+		date1, _ := time.Parse("02.01.2006", orders[i].CreatedAt)
+		date2, _ := time.Parse("02.01.2006", orders[j].CreatedAt)
 		return date1.After(date2)
 	})
 
@@ -71,7 +70,7 @@ func GetOrders(parts []string) error {
 
 	// Вывод заказов
 	for _, order := range orders {
-		fmt.Printf("Order ID: %d, Date: %s, Valid: %t\n", order.ID, order.Date, order.Valid)
+		fmt.Printf("Order ID: %d,\t Client ID: %d,\t Created at: %s,\t Expired at: %s\n", order.ID, order.ClientID, order.CreatedAt, order.ExpiredAt)
 	}
 
 	return nil

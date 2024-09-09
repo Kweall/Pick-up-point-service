@@ -1,8 +1,9 @@
 package storage
 
+import "homework/storage/json_file"
+
 type Storage interface {
-	AddItemToCart(userID, skuID int64, date string) (err error)
-	CheckIfItemExists(userID, skuID int64, date string) (bool, error)
-	DeleteItemBySkuID(skuID int64) error
+	AddOrder(*json_file.Order) (err error)
+	DeleteOrderByID(int64) error
 	GiveOrdersToClient(skuIDs []int64) error
 }

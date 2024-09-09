@@ -16,23 +16,23 @@ func Give(parts []string) (err error) {
 	}
 
 	if len(parts) < 2 {
-		fmt.Println("Should be at least 1 argument: list of skuID (int) separated by space")
+		fmt.Println("Should be at least 1 argument: list of orderID's (int) separated by space")
 		return nil
 	}
 
-	// Преобразуем список skuID в массив int64
-	var skuIDs []int64
+	// Преобразуем список orderID в массив int64
+	var orderIDs []int64
 	for _, part := range parts[1:] {
-		skuID, err := strconv.Atoi(part)
+		orderID, err := strconv.Atoi(part)
 		if err != nil {
-			fmt.Printf("skuID isn't correct")
+			fmt.Printf("orderID is incorrect")
 			return err
 		}
-		skuIDs = append(skuIDs, int64(skuID))
+		orderIDs = append(orderIDs, int64(orderID))
 	}
 
 	// Выдача заказов клиенту
-	err = storage.GiveOrdersToClient(skuIDs)
+	err = storage.GiveOrdersToClient(orderIDs)
 	if err != nil {
 		return err
 	}

@@ -18,20 +18,20 @@ func Delete(parts []string) (err error) {
 	}
 
 	if len(parts)-1 != countOfArgumentsToDelete {
-		fmt.Println("Should be 1 argument: skuID (int)")
+		fmt.Println("Should be 1 argument: orderID (int)")
 		return nil
 	}
 
-	skuID, err := strconv.Atoi(parts[1])
+	orderID, err := strconv.Atoi(parts[1])
 	if err != nil {
-		fmt.Println("skuID isn't correct")
+		fmt.Println("orderID is incorrect")
 		return err
 	}
 
-	// Удаляем элемент из всех корзин пользователей по skuID
-	err = storage.DeleteItemBySkuID(int64(skuID))
+	// Удаляем заказ из файла data.json
+	err = storage.DeleteOrderByID(int64(orderID))
 	if err != nil {
-		fmt.Printf("DeleteItemBySkuID failed with error: %v\n", err)
+		fmt.Printf("DeleteOrderByID failed with error: %v\n", err)
 		return err
 	}
 

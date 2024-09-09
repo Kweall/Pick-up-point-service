@@ -7,28 +7,21 @@ import (
 	"time"
 )
 
-// gibbon
-type OutputData struct {
-	Users []User `json:"users"`
-}
-
-type User struct {
-	UserID int64  `json:"userID"`
-	Items  []Item `json:"items"`
-}
-
-type Item struct {
-	ID     int64  `json:"sku"`
-	Date   string `json:"date"`
-	Valid  bool   `json:"at the pick-up point"`
-	Return bool   `json:"has returned"`
+type Order struct {
+	ID         int64  `json:"Order_ID"`
+	ClientID   int64  `json:"Client_ID"`
+	CreatedAt  string `json:"Created_at"`
+	ExpiredAt  string `json:"Expired_at"`
+	RecievedAt string `json:"Received_at"`
+	ReturnedAt string `json:"Returned_at"`
 }
 
 type Storage struct {
-	Carts map[int64]map[int64]string
-	Path  string
+	Orders map[int64]*Order
+	Path   string
 }
 
+// Конструктор для инициализации хранилища
 func NewStorage(path string) (*Storage, error) {
 	f, err := os.OpenFile(path, os.O_CREATE, 0666)
 	if err != nil {
@@ -36,198 +29,201 @@ func NewStorage(path string) (*Storage, error) {
 	}
 	defer f.Close()
 
-	return &Storage{Carts: make(map[int64]map[int64]string), Path: path}, nil
+	return &Storage{Orders: make(map[int64]*Order), Path: path}, nil
 }
 
-func (s *Storage) AddItemToCart(userID, skuID int64, date string) (err error) {
-	_, err = s.ReadDataFromFile()
+// Добавление заказа в data.json
+func (s *Storage) AddOrder(order *Order) error {
+	err := s.ReadDataFromFile()
 	if err != nil {
 		return err
 	}
 
-	if _, ok := s.Carts[userID]; !ok {
-		s.Carts[userID] = make(map[int64]string)
-	}
+	// Добавление заказа в память
+	s.Orders[order.ID] = order
 
-	s.Carts[userID][skuID] = date
-
-	// Создание структуры для записи данных
-	var data OutputData
-	for userID, items := range s.Carts {
-		user := User{UserID: userID}
-		for itemID, date := range items {
-			user.Items = append(user.Items, Item{ID: itemID, Date: date, Valid: true})
-		}
-		data.Users = append(data.Users, user)
-	}
-
-	// Запись в файл
-	err = s.WriteDataFromFile(data)
+	// Запись данных в файл
+	err = s.WriteDataToFile()
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-// Проверка существования элемента в корзине
-func (s *Storage) CheckIfItemExists(userID, skuID int64, date string) (bool, error) {
-	_, err := s.ReadDataFromFile()
+// Добавление в общую историю заказов
+func (s *Storage) AddOrderToStory(orderID int64, path string) error {
+
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		return false, fmt.Errorf("failed to read from file: %v", err)
+		return err
 	}
-	if cart, ok := s.Carts[userID]; ok {
-		if existingDate, exists := cart[skuID]; exists && existingDate == date {
-			return true, nil
-		}
-	}
-	return false, nil
-}
+	defer file.Close()
 
-// Удаление заказа с указанным skuID из файла
-func (s *Storage) DeleteItemBySkuID(skuID int64) error {
-	_, err := s.ReadDataFromFile()
+	var orderIDs []int64
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(&orderIDs)
 	if err != nil {
-		return fmt.Errorf("failed to read from file: %v", err)
+		return fmt.Errorf("failed to decode order IDs: %v", err)
 	}
 
-	// Флаг для проверки, был ли элемент найден и удален
-	itemDeleted := false
+	// Добавляем новый ID заказа
+	orderIDs = append(orderIDs, orderID)
 
-	// Итерация по всем пользователям и удаление элементов с указанным skuID
-	for userID, cart := range s.Carts {
-		if _, exists := cart[skuID]; exists {
-			delete(cart, skuID)
-			itemDeleted = true
-
-			// Если корзина пользователя пуста после удаления, удаляем запись о пользователе
-			if len(cart) == 0 {
-				delete(s.Carts, userID)
-			}
-		}
-	}
-
-	if !itemDeleted {
-		fmt.Println("Item with the given skuID not found in any user's cart")
-		return nil
-	}
-
-	// Создание структуры для записи данных
-	var data OutputData
-	for userID, items := range s.Carts {
-		user := User{UserID: userID}
-		for itemID, date := range items {
-			user.Items = append(user.Items, Item{ID: itemID, Date: date, Valid: true})
-		}
-		data.Users = append(data.Users, user)
-	}
-	// Запись обновленных данных в файл
-	err = s.WriteDataFromFile(data)
+	err = file.Truncate(0)
 	if err != nil {
-		return fmt.Errorf("failed to write updated data to file: %v", err)
+		return err
 	}
 
-	fmt.Println("Item deleted successfully")
+	// Запись обновленной истории
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(orderIDs)
+	if err != nil {
+		return fmt.Errorf("failed to encode order IDs: %v", err)
+	}
+
 	return nil
 }
 
-func (s *Storage) GiveOrdersToClient(skuIDs []int64) error {
-
-	// Чтение данных из файла
+// Чтение данных из файла
+func (s *Storage) ReadDataFromFile() error {
 	file, err := os.OpenFile(s.Path, os.O_RDWR, 0666)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	var data OutputData
+	var orders []*Order
 	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&data)
+	err = decoder.Decode(&orders)
 	if err != nil {
 		return err
 	}
 
-	// Проверяем заказы
-	var foundUserID int64
-	orderExists := make(map[int64]bool) // Карта для проверки существования заказов
+	// Перезаписываем существующие заказы в память
+	s.Orders = make(map[int64]*Order)
+	for _, order := range orders {
+		s.Orders[order.ID] = order
+	}
+	return nil
+}
 
-	// Собираем все существующие заказы и проверяем их
-	//fmt.Println(data)
-	for _, user := range data.Users {
-		for _, item := range user.Items {
-			orderExists[item.ID] = true
-		}
+// Запись данных в файл
+func (s *Storage) WriteDataToFile() error {
+	file, err := os.OpenFile(s.Path, os.O_RDWR|os.O_TRUNC, 0666)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	var orders []*Order
+	for _, order := range s.Orders {
+		orders = append(orders, order)
 	}
 
-	for _, skuID := range skuIDs {
-		if !orderExists[skuID] {
-			fmt.Printf("Order with skuID %d not found.\n", skuID)
-			return err
-		}
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(orders)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
-		// Проверяем срок хранения и принадлежность одного пользователя
+// Удаление заказа по ID
+func (s *Storage) DeleteOrderByID(orderID int64) error {
+	err := s.ReadDataFromFile()
+	if err != nil {
+		return fmt.Errorf("failed to read from file: %v", err)
+	}
+
+	if _, exists := s.Orders[orderID]; !exists {
+		fmt.Println("Order not found")
+		return nil
+	}
+
+	// Удаление заказа из памяти
+	delete(s.Orders, orderID)
+
+	// Запись обновленных данных в файл
+	err = s.WriteDataToFile()
+	if err != nil {
+		return fmt.Errorf("failed to write updated data to file: %v", err)
+	}
+
+	fmt.Println("Order deleted successfully")
+	return nil
+}
+
+// Выдача заказов клиенту
+func (s *Storage) GiveOrdersToClient(orderIDs []int64) error {
+
+	err := s.ReadDataFromFile()
+	if err != nil {
+		return fmt.Errorf("failed to read from file: %v", err)
+	}
+
+	orderExists := make(map[int64]bool)
+
+	// Проверка существования всех указанных orderID
+	for _, orderID := range orderIDs {
 		found := false
-		for _, user := range data.Users {
-			for _, item := range user.Items {
-				if item.ID == skuID {
-					if !item.Valid {
-						fmt.Println("This sku was given before")
-						return nil
-					}
-					parsedDate, err := time.Parse("02.01.2006", item.Date)
-					if err != nil {
-						return fmt.Errorf("invalid date format for skuID %d: %v", skuID, err)
-					}
-
-					current_time, _ := time.Parse("02.01.2006", time.Now().Format("02.01.2006"))
-					if parsedDate.Before(current_time) {
-						fmt.Printf("Cannot give order with skuID %d, order expired.\n", skuID)
-						return nil
-					}
-
-					if foundUserID == 0 {
-						foundUserID = user.UserID
-					} else if foundUserID != user.UserID {
-						fmt.Println("All orders should belong to the same user.")
-						return nil
-					}
-
-					found = true
-					break
-				}
-			}
-			if found {
+		for _, order := range s.Orders {
+			if order.ID == orderID {
+				found = true
+				orderExists[orderID] = true
 				break
 			}
 		}
 		if !found {
-			fmt.Printf("Order with skuID %d not found.\n", skuID)
-			return nil
+			fmt.Printf("OrderID %d not found.\n", orderID)
+			return fmt.Errorf("OrderID %d not found", orderID)
 		}
 	}
 
-	// Обновляем статус заказов
-	for userIndex := range data.Users {
-		user := &data.Users[userIndex]
-		for itemIndex := range user.Items {
-			item := &user.Items[itemIndex]
-			for _, skuID := range skuIDs {
-				if item.ID == skuID {
-					if !item.Return {
-						last_day, _ := time.Parse("02.01.2006", time.Now().Format("02.01.2006"))
-						last_day = last_day.Add(48 * time.Hour) // Последний день для возврата
-						item.Date = last_day.Format("02.01.2006")
-						item.Valid = false
-					} else {
-						fmt.Println("This item has returned")
-						return nil
-					}
+	// Проверка срока хранения и принадлежности всех заказов одному клиенту
+	var clientID int64
+	for _, order := range s.Orders {
+		for _, orderID := range orderIDs {
+			if order.ID == orderID {
+				if clientID == 0 {
+					clientID = order.ClientID
+				} else if order.ClientID != clientID {
+					//fmt.Println(order.ClientID, clientID)
+					fmt.Println("All orders should belong to the same client.")
+					return nil
+				}
+
+				// Проверка срока хранения
+				parsedDate, err := time.Parse("02.01.2006", order.ExpiredAt)
+				if err != nil {
+					fmt.Printf("invalid date format for orderID %d: %v", order.ID, err)
+					return nil
+				}
+
+				currentTime := time.Now()
+				if parsedDate.Before(currentTime) {
+					fmt.Printf("Cannot give order with ID %d, order expired.\n", order.ID)
+					return nil
+				}
+
+				// Проверка, был ли заказ уже выдан
+				if order.RecievedAt != "" {
+					fmt.Printf("Order with ID %d was already given.\n", order.ID)
+					return fmt.Errorf("order already given")
 				}
 			}
 		}
 	}
 
-	// Записываем обновленные данные в файл
-	err = s.WriteDataFromFile(data)
+	// Обновление данных заказов
+	for _, orderID := range orderIDs {
+		if order, exists := s.Orders[orderID]; exists {
+			order.RecievedAt = time.Now().Format("02.01.2006") // Устанавливаем текущую дату как дату получения
+		}
+	}
+
+	// Запись обновленных данных в файл
+	err = s.WriteDataToFile()
 	if err != nil {
 		return fmt.Errorf("failed to write updated data to file: %v", err)
 	}
@@ -236,44 +232,47 @@ func (s *Storage) GiveOrdersToClient(skuIDs []int64) error {
 	return nil
 }
 
-func (s *Storage) ReadDataFromFile() (*OutputData, error) {
-	file, err := os.OpenFile(s.Path, os.O_RDWR, 0666)
+// Принятие возврата заказа
+func (s *Storage) AcceptReturn(clientID, orderID int64) error {
+	err := s.ReadDataFromFile()
 	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var data OutputData
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&data)
-	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to read from file: %v", err)
 	}
 
-	// Преобразование данных в карту
-	s.Carts = make(map[int64]map[int64]string)
-	for _, user := range data.Users {
-		if _, ok := s.Carts[user.UserID]; !ok {
-			s.Carts[user.UserID] = make(map[int64]string)
-		}
-		for _, item := range user.Items {
-			s.Carts[user.UserID][item.ID] = item.Date
-		}
+	order, exists := s.Orders[orderID]
+	if !exists || order.ClientID != clientID {
+		fmt.Println("Order not found or does not belong to the given client")
+		return nil
 	}
-	return &data, nil
-}
 
-func (s *Storage) WriteDataFromFile(data OutputData) (err error) {
-	file, err := os.OpenFile(s.Path, os.O_RDWR|os.O_TRUNC, 0666)
+	// Запись обновленных данных в файл
+	err = s.WriteDataToFile()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write updated data to file: %v", err)
 	}
-	defer file.Close()
 
-	encoder := json.NewEncoder(file)
-	err = encoder.Encode(data)
-	if err != nil {
-		return err
-	}
+	fmt.Println("Order return accepted successfully")
 	return nil
 }
+
+// Получение списка возвратов с пагинацией
+/*func (s *Storage) GetReturns(page, perPage int) ([]*Order, error) {
+	err := s.ReadDataFromFile()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read from file: %v", err)
+	}
+
+	var returns []*Order
+
+	// Пагинация
+	start := (page - 1) * perPage
+	end := start + perPage
+	if start >= len(returns) {
+		return nil, nil // Нет данных для данной страницы
+	}
+	if end > len(returns) {
+		end = len(returns)
+	}
+
+	return returns[start:end], nil
+}*/

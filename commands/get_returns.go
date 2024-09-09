@@ -9,23 +9,22 @@ import (
 const returnsPerPage = 5
 
 func GetReturns(parts []string) error {
+
 	storage, err := json_file.NewStorage("storage/json_file/data.json")
 	if err != nil {
 		return fmt.Errorf("can't init storage: %v", err)
 	}
 
-	data, err := storage.ReadDataFromFile()
+	err = storage.ReadDataFromFile()
 	if err != nil {
 		return fmt.Errorf("failed to read from file: %v", err)
 	}
 
 	// Поиск всех возвратов
-	var returns []json_file.Item
-	for _, user := range data.Users {
-		for _, item := range user.Items {
-			if item.Return {
-				returns = append(returns, item)
-			}
+	var returns []json_file.Order
+	for _, order := range storage.Orders {
+		if order.ReturnedAt != "" {
+			returns = append(returns, *order)
 		}
 	}
 
@@ -59,8 +58,8 @@ func GetReturns(parts []string) error {
 	// Вывод возвратов на текущей странице
 	fmt.Printf("Showing returns, page %d:\n", page)
 	for i := start; i < end; i++ {
-		item := returns[i]
-		fmt.Printf("Order ID: %d, Date: %s, Valid: %t\n", item.ID, item.Date, item.Return)
+		order := returns[i]
+		fmt.Printf("Order ID: %d,\t Client ID: %d,\t Date of return: %s\t\n", order.ID, order.ClientID, order.ReturnedAt)
 	}
 
 	return nil
