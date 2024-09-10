@@ -10,7 +10,7 @@ const returnsPerPage = 5
 
 func GetReturns(storage Storage, parts []string) error {
 
-	orders, err := storage.ReadDataFromFile()
+	orders, err := storage.GetAll()
 	if err != nil {
 		return fmt.Errorf("failed to read from file: %v", err)
 	}

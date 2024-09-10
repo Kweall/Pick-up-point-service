@@ -103,6 +103,10 @@ func (s *Storage) ReadDataFromFile() (map[int64]*Order, error) {
 	return orders, nil
 }
 
+func (s *Storage) GetAll() (map[int64]*Order, error) {
+	return s.ReadDataFromFile()
+}
+
 // Запись данных в файл
 func (s *Storage) WriteDataToFile(orders map[int64]*Order) error {
 	file, err := os.OpenFile(s.Path, os.O_RDWR|os.O_TRUNC, 0666)

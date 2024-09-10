@@ -10,7 +10,7 @@ import (
 const countOfArgumentsToGetOrders = 3
 
 func GetOrders(storage Storage, parts []string) error {
-	orders, err := storage.ReadDataFromFile()
+	orders, err := storage.GetAll()
 	if err != nil {
 		return fmt.Errorf("failed to read from file: %v", err)
 	}
