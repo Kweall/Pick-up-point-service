@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"homework/commands"
+	"homework/storage/json_file"
 	"os"
 	"strings"
-	//"gitlab.ozon.dev/go/classroom-15/students/workshop-1/storage/json_file"
 )
 
 func main() {
@@ -14,7 +14,11 @@ func main() {
 	fmt.Println("Console Utility")
 	fmt.Println("---------------------")
 	fmt.Println("Type 'help' to see available commands or 'exit' to quit.")
-
+	storage, err := json_file.NewStorage("storage/json_file/data.json")
+	if err != nil {
+		fmt.Printf("can't init storage: %v", err)
+		return
+	}
 	// Основной цикл программы
 	for {
 		fmt.Print("> ")                       // Выводим приглашение для ввода команды
@@ -28,7 +32,6 @@ func main() {
 		command := strings.TrimSpace(input)
 
 		parts := strings.Fields(command)
-
 		// Обрабатываем команды
 		switch parts[0] {
 		case "help":
@@ -45,19 +48,22 @@ func main() {
 			fmt.Println("Exiting...")
 			return // Завершаем программу
 		case "CREATE": // Принять заказ от курьера
-			commands.Create(parts)
+			err = commands.Create(storage, parts)
 		case "DELETE": // Вернуть заказ курьеру
-			commands.Delete(parts)
+			err = commands.Delete(storage, parts)
 		case "GIVE": // Выдать заказы клиента
-			commands.Give(parts)
+			err = commands.Give(storage, parts)
 		case "GET_ORDERS": // Получить список заказов определенного клиента
-			commands.GetOrders(parts)
+			err = commands.GetOrders(storage, parts)
 		case "ACCEPT_RETURN": // Принять возврат от клиента
-			commands.AcceptReturn(parts)
+			err = commands.AcceptReturn(storage, parts)
 		case "GET_RETURNS": // Получить список возвратов (номер страницы, количество записей на одной странице - 5)
-			commands.GetReturns(parts)
+			err = commands.GetReturns(storage, parts)
 		default:
-			fmt.Printf("Unknown command: %s\n", command)
+			err = fmt.Errorf("unknown command: %s", command)
+		}
+		if err != nil {
+			fmt.Println(err)
 		}
 	}
 }

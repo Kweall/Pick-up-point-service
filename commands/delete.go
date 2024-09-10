@@ -2,37 +2,25 @@ package commands
 
 import (
 	"fmt"
-	"homework/storage"
-	"homework/storage/json_file"
 	"strconv"
 )
 
-const countOfArgumentsToDelete = 1
+const countOfArgumentsToDelete = 2
 
-func Delete(parts []string) (err error) {
-	var storage storage.Storage
-	storage, err = json_file.NewStorage("storage/json_file/data.json")
-	if err != nil {
-		fmt.Printf("can't init storage: %v\n", err)
-		return err
+func Delete(storage Storage, parts []string) (err error) {
+	if len(parts) != countOfArgumentsToDelete {
+		return fmt.Errorf("should be 1 argument: orderID (int)")
 	}
 
-	if len(parts)-1 != countOfArgumentsToDelete {
-		fmt.Println("Should be 1 argument: orderID (int)")
-		return nil
-	}
-
-	orderID, err := strconv.Atoi(parts[1])
+	orderID, err := strconv.ParseInt(parts[1], 10, 64)
 	if err != nil {
-		fmt.Println("orderID is incorrect")
-		return err
+		return fmt.Errorf("orderID is incorrect")
 	}
 
 	// Удаляем заказ из файла data.json
-	err = storage.DeleteOrderByID(int64(orderID))
+	err = storage.DeleteOrderByID(orderID)
 	if err != nil {
-		fmt.Printf("DeleteOrderByID failed with error: %v\n", err)
-		return err
+		return fmt.Errorf("deleteOrderByID failed with error: %v", err)
 	}
 
 	return nil
