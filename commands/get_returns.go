@@ -3,10 +3,10 @@ package commands
 import (
 	"fmt"
 	"homework/storage/json_file"
-	"strconv"
-)
+	"log"
 
-const returnsPerPage = 5
+	"github.com/nsf/termbox-go"
+)
 
 func GetReturns(storage Storage, parts []string) error {
 
@@ -27,32 +27,48 @@ func GetReturns(storage Storage, parts []string) error {
 		return fmt.Errorf("no returns found")
 	}
 
-	// Определение страницы
-	page := 1
-	if len(parts) > 1 {
-		page, err = strconv.Atoi(parts[1])
-		if err != nil || page <= 0 {
-			fmt.Println("Invalid page number. Showing page 1.")
-			page = 1
+	// Инициализация termbox
+	err = termbox.Init()
+	if err != nil {
+		log.Fatalf("Failed to initialize termbox: %v", err)
+	}
+	defer termbox.Close()
+
+	// Переменные для управления прокруткой
+	index := 0
+
+	// Функция для отображения текущего возврата
+	displayCurrentReturn := func() {
+		termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+		order := returns[index]
+		output := fmt.Sprintf("Order ID: %d,\t Client ID: %d,\t Date of return: %s\t\n", order.ID, order.ClientID, order.ReturnedAt)
+		for i, ch := range output {
+			termbox.SetCell(i, 0, ch, termbox.ColorWhite, termbox.ColorDefault)
+		}
+		termbox.Flush()
+	}
+
+	displayCurrentReturn()
+
+	for {
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
+			if ev.Key == termbox.KeyArrowDown {
+				if index < len(returns)-1 {
+					index++
+					displayCurrentReturn()
+				}
+			} else if ev.Key == termbox.KeyArrowUp {
+				if index > 0 {
+					index--
+					displayCurrentReturn()
+				}
+			} else if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlC {
+				return nil // Выход из функции
+			}
+		case termbox.EventError:
+			log.Printf("Termbox event error: %v", ev.Err)
+			return ev.Err
 		}
 	}
-
-	// Пагинация: расчет начального и конечного индекса для вывода записей
-	start := (page - 1) * returnsPerPage
-	if start >= len(returns) {
-		return fmt.Errorf("page number exceeds the available range")
-	}
-	end := start + returnsPerPage
-	if end > len(returns) {
-		end = len(returns)
-	}
-
-	// Вывод возвратов на текущей странице
-	fmt.Printf("Showing returns, page %d:\n", page)
-	for i := start; i < end; i++ {
-		order := returns[i]
-		fmt.Printf("Order ID: %d,\t Client ID: %d,\t Date of return: %s\t\n", order.ID, order.ClientID, order.ReturnedAt)
-	}
-
-	return nil
 }
