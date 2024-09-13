@@ -8,12 +8,16 @@ import (
 )
 
 type Order struct {
-	ID         int64     `json:"Order_ID"`
-	ClientID   int64     `json:"Client_ID"`
-	CreatedAt  time.Time `json:"Created_at"`
-	ExpiredAt  time.Time `json:"Expired_at"`
-	RecievedAt time.Time `json:"Received_at"`
-	ReturnedAt time.Time `json:"Returned_at"`
+	ID              int64     `json:"Order_ID"`
+	ClientID        int64     `json:"Client_ID"`
+	CreatedAt       time.Time `json:"Created_at"`
+	ExpiredAt       time.Time `json:"Expired_at"`
+	RecievedAt      time.Time `json:"Received_at"`
+	ReturnedAt      time.Time `json:"Returned_at"`
+	Weight          float64   `json:"Weight"`
+	Price           int64     `json:"Price"`
+	Packaging       string    `json:"Packaging"`
+	Additional_film string    `json:"Additional_film"`
 }
 
 type Storage struct {
