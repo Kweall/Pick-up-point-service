@@ -3,6 +3,7 @@ package commands
 import (
 	"bufio"
 	"fmt"
+	"homework/packaging"
 	"homework/storage/json_file"
 	"math"
 	"os"
@@ -53,7 +54,7 @@ func Create(storage Storage, parts []string) error {
 
 	// Добавляем вес, цену и выбор упаковки
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Specify the weight in kg (up to 3 decimal places)")
+	fmt.Printf("Specify the weight in kg (up to 3 decimal places)\n> ")
 	input, err := reader.ReadString('\n')
 	if err != nil {
 		return fmt.Errorf("error reading input: %v", err)
@@ -64,7 +65,7 @@ func Create(storage Storage, parts []string) error {
 	}
 	weight = math.Round(weight*1000) / 1000
 
-	fmt.Println("Specify the price (int)")
+	fmt.Printf("Specify the price (int)\n> ")
 	input, err = reader.ReadString('\n')
 	if err != nil {
 		return fmt.Errorf("error reading input: %v", err)
@@ -74,39 +75,29 @@ func Create(storage Storage, parts []string) error {
 		return fmt.Errorf("invalid format, err: %v", err)
 	}
 
-	fmt.Printf("Specify the type of packaging \nbag - 5 units\n box - 20 units\n film - 1 unit\n")
-	packaging, err := reader.ReadString('\n')
+	fmt.Printf("Specify the type of packaging \nbag - 5 units\nbox - 20 units\nfilm - 1 unit\n\n> ")
+	packagingType, err := reader.ReadString('\n')
 	if err != nil {
 		return fmt.Errorf("error reading input: %v", err)
 	}
-	packaging = strings.ToLower(strings.TrimSpace(packaging))
-	switch packaging {
-	case "bag":
-		if weight >= 10 {
-			return fmt.Errorf("weight exceeds 10 kg")
-		} else {
-			price += 5
-		}
-	case "box":
-		if weight >= 30 {
-			return fmt.Errorf("weight exceeds 30 kg")
-		} else {
-			price += 20
-		}
-	case "film":
-		price += 1
-	default:
-		return fmt.Errorf("there is no such type of packaging")
+	packagingType = strings.ToLower(strings.TrimSpace(packagingType))
+	pkg, err := packaging.GetPackaging(packagingType)
+	if err != nil {
+		return fmt.Errorf("failed, err: %v", err)
 	}
-	var additional_film string
-	if packaging != "film" {
-		fmt.Println("Would you like to add additional film for 1 units? (yes or no)")
-		additional_film, err = reader.ReadString('\n') // Считываем строку до символа новой строки
+	price, err = pkg.NewPrice(weight, price)
+	if err != nil {
+		return fmt.Errorf("failed, err: %v", err)
+	}
+	var additionalFilm string
+	if packagingType != "film" {
+		fmt.Printf("Would you like to add additional film for 1 units? (yes or no)\n> ")
+		additionalFilm, err = reader.ReadString('\n') // Считываем строку до символа новой строки
 		if err != nil {
 			return fmt.Errorf("error reading input: %v", err)
 		}
-		additional_film = strings.TrimSpace(additional_film)
-		switch additional_film {
+		additionalFilm = strings.ToLower(strings.TrimSpace(additionalFilm))
+		switch additionalFilm {
 		case "yes":
 			price += 1
 		case "no":
@@ -117,14 +108,14 @@ func Create(storage Storage, parts []string) error {
 
 	// Создание нового заказа
 	newOrder := &json_file.Order{
-		ID:              orderID,
-		ClientID:        clientID,
-		CreatedAt:       currentTime,
-		ExpiredAt:       parsedDate,
-		Weight:          weight,
-		Price:           price,
-		Packaging:       packaging,
-		Additional_film: additional_film,
+		ID:             orderID,
+		ClientID:       clientID,
+		CreatedAt:      currentTime,
+		ExpiredAt:      parsedDate,
+		Weight:         weight,
+		Price:          price,
+		Packaging:      packagingType,
+		AdditionalFilm: additionalFilm,
 	}
 
 	// Добавление заказа в хранилище

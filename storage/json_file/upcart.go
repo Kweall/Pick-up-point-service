@@ -8,16 +8,16 @@ import (
 )
 
 type Order struct {
-	ID              int64     `json:"Order_ID"`
-	ClientID        int64     `json:"Client_ID"`
-	CreatedAt       time.Time `json:"Created_at"`
-	ExpiredAt       time.Time `json:"Expired_at"`
-	RecievedAt      time.Time `json:"Received_at"`
-	ReturnedAt      time.Time `json:"Returned_at"`
-	Weight          float64   `json:"Weight"`
-	Price           int64     `json:"Price"`
-	Packaging       string    `json:"Packaging"`
-	Additional_film string    `json:"Additional_film"`
+	ID             int64     `json:"order_id"`
+	ClientID       int64     `json:"client_id"`
+	CreatedAt      time.Time `json:"created_at"`
+	ExpiredAt      time.Time `json:"expired_at"`
+	RecievedAt     time.Time `json:"received_at"`
+	ReturnedAt     time.Time `json:"returned_at"`
+	Weight         float64   `json:"weight"`
+	Price          int64     `json:"price"`
+	Packaging      string    `json:"packaging"`
+	AdditionalFilm string    `json:"additional_film"`
 }
 
 type Storage struct {
@@ -264,7 +264,6 @@ func (s *Storage) AcceptReturn(clientID, orderID int64) error {
 		return fmt.Errorf("failed to write updated data to file: %v", err)
 	}
 
-	//fmt.Println("Order return accepted successfully")
 	return nil
 }
 

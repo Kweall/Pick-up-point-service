@@ -60,7 +60,7 @@ func main() {
 		case "GET_RETURNS": // Получить список возвратов (номер страницы, количество записей на одной странице - 5)
 			err = commands.GetReturns(storage, parts)
 		default:
-			err = fmt.Errorf("unknown command: %s", command)
+			err = fmt.Errorf("unknown command: %s", parts[0])
 		}
 		if err != nil {
 			fmt.Println(err)
