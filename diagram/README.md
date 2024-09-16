@@ -1,0 +1,1 @@
+Я построил диаграмму классов с помошью [PlantUML](https://plantuml.com/ru/class-diagram)

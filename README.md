@@ -1,0 +1,2 @@
+[Паттерн проектирования](https://gitlab.ozon.dev/kweall/homework/-/blob/devtask/GOJHW-2/packaging/README.md)
+[Диаграмма](https://gitlab.ozon.dev/kweall/homework/-/blob/devtask/GOJHW-2/diagram/README.md)

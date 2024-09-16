@@ -81,11 +81,11 @@ func Create(storage Storage, parts []string) error {
 		return fmt.Errorf("error reading input: %v", err)
 	}
 	packagingType = strings.ToLower(strings.TrimSpace(packagingType))
-	pkg, err := packaging.GetPackaging(packagingType)
+	packaging, err := packaging.GetPackaging(packagingType)
 	if err != nil {
 		return fmt.Errorf("failed, err: %v", err)
 	}
-	price, err = pkg.NewPrice(weight, price)
+	price, err = packaging.NewPrice(weight, price)
 	if err != nil {
 		return fmt.Errorf("failed, err: %v", err)
 	}

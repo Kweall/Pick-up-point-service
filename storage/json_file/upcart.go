@@ -20,25 +20,25 @@ type Order struct {
 	AdditionalFilm string    `json:"additional_film"`
 }
 
-type Storage struct {
+type storage struct {
 	Orders map[int64]*Order
 	Path   string
 }
 
 // Конструктор для инициализации хранилища
-func NewStorage(path string) (*Storage, error) {
+func NewStorage(path string) (*storage, error) {
 	f, err := os.OpenFile(path, os.O_CREATE, 0666)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 
-	return &Storage{Orders: make(map[int64]*Order), Path: path}, nil
+	return &storage{Orders: make(map[int64]*Order), Path: path}, nil
 }
 
 // Добавление заказа в data.json
-func (s *Storage) AddOrder(order *Order) error {
-	orders, err := s.ReadDataFromFile()
+func (s *storage) AddOrder(order *Order) error {
+	orders, err := s.readDataFromFile()
 	if err != nil {
 		return fmt.Errorf("can't read file, err: %v", err)
 	}
@@ -47,7 +47,7 @@ func (s *Storage) AddOrder(order *Order) error {
 	orders[order.ID] = order
 
 	// Запись данных в файл
-	err = s.WriteDataToFile(orders)
+	err = s.writeDataToFile(orders)
 	if err != nil {
 		return fmt.Errorf("can't write data to file, err: %v", err)
 	}
@@ -56,7 +56,7 @@ func (s *Storage) AddOrder(order *Order) error {
 }
 
 // Добавление в общую историю заказов
-func (s *Storage) AddOrderToStory(orderID int64, path string) error {
+func (s *storage) AddOrderToStory(orderID int64, path string) error {
 
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
@@ -90,7 +90,7 @@ func (s *Storage) AddOrderToStory(orderID int64, path string) error {
 }
 
 // Чтение данных из файла
-func (s *Storage) ReadDataFromFile() (map[int64]*Order, error) {
+func (s *storage) readDataFromFile() (map[int64]*Order, error) {
 	file, err := os.OpenFile(s.Path, os.O_RDWR, 0666)
 	if err != nil {
 		return nil, fmt.Errorf("can't open file, err: %v", err)
@@ -107,12 +107,12 @@ func (s *Storage) ReadDataFromFile() (map[int64]*Order, error) {
 	return orders, nil
 }
 
-func (s *Storage) GetAll() (map[int64]*Order, error) {
-	return s.ReadDataFromFile()
+func (s *storage) GetAll() (map[int64]*Order, error) {
+	return s.readDataFromFile()
 }
 
 // Запись данных в файл
-func (s *Storage) WriteDataToFile(orders map[int64]*Order) error {
+func (s *storage) writeDataToFile(orders map[int64]*Order) error {
 	file, err := os.OpenFile(s.Path, os.O_RDWR|os.O_TRUNC, 0666)
 	if err != nil {
 		return fmt.Errorf("can't open file, err: %v", err)
@@ -128,8 +128,8 @@ func (s *Storage) WriteDataToFile(orders map[int64]*Order) error {
 }
 
 // Удаление заказа по ID
-func (s *Storage) DeleteOrderByID(orderID int64) error {
-	orders, err := s.ReadDataFromFile()
+func (s *storage) DeleteOrderByID(orderID int64) error {
+	orders, err := s.readDataFromFile()
 	if err != nil {
 		return fmt.Errorf("failed to read from file: %v", err)
 	}
@@ -142,7 +142,7 @@ func (s *Storage) DeleteOrderByID(orderID int64) error {
 	delete(orders, orderID)
 
 	// Запись обновленных данных в файл
-	err = s.WriteDataToFile(orders)
+	err = s.writeDataToFile(orders)
 	if err != nil {
 		return fmt.Errorf("failed to write updated data to file: %v", err)
 	}
@@ -152,9 +152,9 @@ func (s *Storage) DeleteOrderByID(orderID int64) error {
 }
 
 // Выдача заказов клиенту
-func (s *Storage) GiveOrdersToClient(orderIDs []int64) error {
+func (s *storage) GiveOrdersToClient(orderIDs []int64) error {
 
-	orders, err := s.ReadDataFromFile()
+	orders, err := s.readDataFromFile()
 	if err != nil {
 		return fmt.Errorf("failed to read from file: %v", err)
 	}
@@ -210,7 +210,7 @@ func (s *Storage) GiveOrdersToClient(orderIDs []int64) error {
 	}
 
 	// Запись обновленных данных в файл
-	err = s.WriteDataToFile(orders)
+	err = s.writeDataToFile(orders)
 	if err != nil {
 		return fmt.Errorf("failed to write updated data to file: %v", err)
 	}
@@ -220,8 +220,8 @@ func (s *Storage) GiveOrdersToClient(orderIDs []int64) error {
 }
 
 // Принятие возврата заказа
-func (s *Storage) AcceptReturn(clientID, orderID int64) error {
-	orders, err := s.ReadDataFromFile()
+func (s *storage) AcceptReturn(clientID, orderID int64) error {
+	orders, err := s.readDataFromFile()
 	if err != nil {
 		return fmt.Errorf("failed to read from file: %v", err)
 	}
@@ -259,7 +259,7 @@ func (s *Storage) AcceptReturn(clientID, orderID int64) error {
 		return fmt.Errorf("order with ID %d for client %d not found", orderID, clientID)
 	}
 	// Запись обновленных данных в файл
-	err = s.WriteDataToFile(orders)
+	err = s.writeDataToFile(orders)
 	if err != nil {
 		return fmt.Errorf("failed to write updated data to file: %v", err)
 	}
@@ -267,7 +267,7 @@ func (s *Storage) AcceptReturn(clientID, orderID int64) error {
 	return nil
 }
 
-func (s *Storage) Validation(orderID int64) error {
+func (s *storage) Validation(orderID int64) error {
 	// Проверяем, принимался ли этот заказ ранее
 	story_file, err := os.OpenFile("storage/json_file/story_of_orders.json", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
