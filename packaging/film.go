@@ -2,6 +2,10 @@ package packaging
 
 type Film struct{}
 
-func (f *Film) NewPrice(weight float64, oldPrice int64) (int64, error) {
-	return oldPrice + 1, nil
+func (f *Film) CheckWeight(weight float64) bool {
+	return true
+}
+
+func (f *Film) GetPrice() int64 {
+	return 1
 }

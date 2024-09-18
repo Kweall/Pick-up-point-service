@@ -1,12 +1,11 @@
 package packaging
 
-import "fmt"
-
 type Box struct{}
 
-func (b *Box) NewPrice(weight float64, oldPrice int64) (int64, error) {
-	if weight >= 30 {
-		return 0, fmt.Errorf("weight exceeds 10 kg for bag")
-	}
-	return oldPrice + 20, nil
+func (b *Box) CheckWeight(weight float64) bool {
+	return weight < 30
+}
+
+func (b *Box) GetPrice() int64 {
+	return 20
 }

@@ -3,7 +3,6 @@ package commands
 import (
 	"bufio"
 	"fmt"
-	"homework/packaging"
 	"homework/storage/json_file"
 	"math"
 	"os"
@@ -75,19 +74,20 @@ func Create(storage Storage, parts []string) error {
 		return fmt.Errorf("invalid format, err: %v", err)
 	}
 
-	fmt.Printf("Specify the type of packaging \nbag - 5 units\nbox - 20 units\nfilm - 1 unit\n\n> ")
+	fmt.Printf("Specify the type of packaging \nbag - 5 units\nbox - 20 units\nfilm - 1 unit\n> ")
 	packagingType, err := reader.ReadString('\n')
 	if err != nil {
 		return fmt.Errorf("error reading input: %v", err)
 	}
 	packagingType = strings.ToLower(strings.TrimSpace(packagingType))
-	packaging, err := packaging.GetPackaging(packagingType)
+	packaging, err := GetPackaging(packagingType)
 	if err != nil {
 		return fmt.Errorf("failed, err: %v", err)
 	}
-	price, err = packaging.NewPrice(weight, price)
-	if err != nil {
-		return fmt.Errorf("failed, err: %v", err)
+	if packaging.CheckWeight(weight) {
+		price += packaging.GetPrice()
+	} else {
+		return fmt.Errorf("cannot be packed in this type, the weight is too big")
 	}
 	var additionalFilm string
 	if packagingType != "film" {

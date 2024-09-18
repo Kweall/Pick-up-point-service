@@ -1,19 +1,23 @@
-package packaging
+package commands
 
-import "fmt"
+import (
+	"fmt"
+	"homework/packaging"
+)
 
 type Packaging interface {
-	NewPrice(weight float64, oldPrice int64) (int64, error)
+	CheckWeight(weight float64) bool
+	GetPrice() int64
 }
 
 func GetPackaging(packagingType string) (Packaging, error) {
 	switch packagingType {
 	case "bag":
-		return &Bag{}, nil
+		return &packaging.Bag{}, nil
 	case "box":
-		return &Box{}, nil
+		return &packaging.Box{}, nil
 	case "film":
-		return &Film{}, nil
+		return &packaging.Film{}, nil
 	default:
 		return nil, fmt.Errorf("unknown packaging type")
 	}
