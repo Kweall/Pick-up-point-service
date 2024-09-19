@@ -19,6 +19,12 @@ func main() {
 		fmt.Printf("can't init storage: %v", err)
 		return
 	}
+	storyFilePath := "storage/json_file/story_of_orders.json"
+	storage.OrderHistory, err = json_file.NewHistoryStorage(storyFilePath)
+	if err != nil {
+		fmt.Printf("can't load order history: %v", err)
+		return
+	}
 	// Основной цикл программы
 	for {
 		fmt.Print("> ")                       // Выводим приглашение для ввода команды

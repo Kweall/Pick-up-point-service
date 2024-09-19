@@ -34,9 +34,9 @@ func Create(storage Storage, parts []string) error {
 	}
 
 	// Проверяем, принимался ли этот заказ ранее
-	err = storage.Validation(orderID)
+	err = storage.CheckIfExists(orderID)
 	if err != nil {
-		return fmt.Errorf("validation have a problem")
+		return fmt.Errorf("this orderID already exists")
 	}
 
 	date := parts[3]
