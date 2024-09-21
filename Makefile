@@ -12,9 +12,17 @@ run: build
 lint:
 	golangci-lint run --issues-exit-code=0
 
+test:
+	go test -v -cover ./...
+
+coverage:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+
+
 all: build
 
 clean:
 	rm -f $(APP_NAME)
 
-.PHONY: build deps-install run lint all clean
+.PHONY: build deps-install run lint all clean test coverage

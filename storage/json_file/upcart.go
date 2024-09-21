@@ -20,15 +20,15 @@ type Order struct {
 	AdditionalFilm string    `json:"additional_film"`
 }
 
-type storage struct {
+type Storage struct {
 	Orders       map[int64]*Order
 	OrderHistory []int64
 	Path         string
 }
 
 // Конструктор для инициализации хранилища
-func NewStorage(path string) (*storage, error) {
-	storage := &storage{Orders: make(map[int64]*Order), Path: path}
+func NewStorage(path string) (*Storage, error) {
+	storage := &Storage{Orders: make(map[int64]*Order), Path: path}
 	err := storage.readDataFromFile()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load data: %w", err)
@@ -54,7 +54,7 @@ func NewHistoryStorage(path string) ([]int64, error) {
 }
 
 // Добавление заказа в data.json
-func (s *storage) AddOrder(order *Order) error {
+func (s *Storage) AddOrder(order *Order) error {
 	s.Orders[order.ID] = order
 
 	// Запись данных в файл
@@ -67,7 +67,7 @@ func (s *storage) AddOrder(order *Order) error {
 }
 
 // Добавление в общую историю заказов
-func (s *storage) AddOrderToStory(orderID int64, path string) error {
+func (s *Storage) AddOrderToStory(orderID int64, path string) error {
 	// Проверяем, существует ли уже этот заказ в истории
 	for _, id := range s.OrderHistory {
 		if id == orderID {
@@ -86,7 +86,7 @@ func (s *storage) AddOrderToStory(orderID int64, path string) error {
 	return nil
 }
 
-func (s *storage) writeDataToHistory(path string) error {
+func (s *Storage) writeDataToHistory(path string) error {
 	// Открываем файл для записи истории заказов
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
@@ -104,12 +104,16 @@ func (s *storage) writeDataToHistory(path string) error {
 }
 
 // Чтение данных из файла
-func (s *storage) readDataFromFile() error {
+func (s *Storage) readDataFromFile() error {
 	file, err := os.Open(s.Path)
 	if err != nil {
 		return fmt.Errorf("can't open file, err: %v", err)
 	}
 	defer file.Close()
+
+	if stat, _ := file.Stat(); stat.Size() == 0 {
+		return nil
+	}
 
 	err = json.NewDecoder(file).Decode(&s.Orders)
 	if err != nil {
@@ -119,12 +123,12 @@ func (s *storage) readDataFromFile() error {
 	return nil
 }
 
-func (s *storage) GetAll() (map[int64]*Order, error) {
+func (s *Storage) GetAll() (map[int64]*Order, error) {
 	return s.Orders, nil
 }
 
 // Запись данных в файл
-func (s *storage) writeDataToFile(orders map[int64]*Order) error {
+func (s *Storage) writeDataToFile(orders map[int64]*Order) error {
 	file, err := os.OpenFile(s.Path, os.O_RDWR|os.O_TRUNC, 0666)
 	if err != nil {
 		return fmt.Errorf("can't open file, err: %v", err)
@@ -140,7 +144,7 @@ func (s *storage) writeDataToFile(orders map[int64]*Order) error {
 }
 
 // Удаление заказа по ID
-func (s *storage) DeleteOrderByID(orderID int64) error {
+func (s *Storage) DeleteOrderByID(orderID int64) error {
 	if _, exists := s.Orders[orderID]; !exists {
 		return fmt.Errorf("order not found")
 	}
@@ -159,7 +163,7 @@ func (s *storage) DeleteOrderByID(orderID int64) error {
 }
 
 // Выдача заказов клиенту
-func (s *storage) GiveOrdersToClient(orderIDs []int64) error {
+func (s *Storage) GiveOrdersToClient(orderIDs []int64) error {
 
 	// Проверка существования всех указанных orderID
 	orderExists := make(map[int64]bool)
@@ -209,7 +213,7 @@ func (s *storage) GiveOrdersToClient(orderIDs []int64) error {
 }
 
 // Принятие возврата заказа
-func (s *storage) AcceptReturn(clientID, orderID int64) error {
+func (s *Storage) AcceptReturn(clientID, orderID int64) error {
 	// Проверяем, существует ли заказ в памяти
 	order, exists := s.Orders[orderID]
 	if !exists || order.ClientID != clientID {
@@ -245,7 +249,7 @@ func (s *storage) AcceptReturn(clientID, orderID int64) error {
 	return nil
 }
 
-func (s *storage) CheckIfExists(orderID int64) error {
+func (s *Storage) CheckIfExists(orderID int64) error {
 	// Проверяем, принимался ли этот заказ ранее
 	for _, id := range s.OrderHistory {
 		if id == orderID {

@@ -5,6 +5,8 @@ import (
 	"homework/packaging"
 )
 
+//go:generate mkdir -p ./mocks
+//go:generate minimock -g -i * -o ./mocks/ -s ".mock.go"
 type Packaging interface {
 	CheckWeight(weight float64) bool
 	GetPrice() int64

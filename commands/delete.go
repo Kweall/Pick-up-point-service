@@ -20,7 +20,7 @@ func Delete(storage Storage, parts []string) (err error) {
 	// Удаляем заказ из файла data.json
 	err = storage.DeleteOrderByID(orderID)
 	if err != nil {
-		return fmt.Errorf("deleteOrderByID failed with error: %v", err)
+		return fmt.Errorf("%v", err)
 	}
 
 	return nil

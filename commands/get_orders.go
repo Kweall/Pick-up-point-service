@@ -10,10 +10,6 @@ import (
 const countOfArgumentsToGetOrders = 3
 
 func GetOrders(storage Storage, parts []string) error {
-	orders, err := storage.GetAll()
-	if err != nil {
-		return fmt.Errorf("failed to read from file: %v", err)
-	}
 
 	if len(parts) < countOfArgumentsToGetOrders-1 {
 		return fmt.Errorf("should be at least 1 argument: clientID (int)")
@@ -33,6 +29,10 @@ func GetOrders(storage Storage, parts []string) error {
 		if err != nil {
 			return fmt.Errorf("limit is incorrect")
 		}
+	}
+	orders, err := storage.GetAll()
+	if err != nil {
+		return fmt.Errorf("failed to read from file: %v", err)
 	}
 
 	// Поиск заказов пользователя
