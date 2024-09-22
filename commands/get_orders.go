@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-const countOfArgumentsToGetOrders = 3
+const countOfArgumentsToGetOrders = 2
 
 func GetOrders(storage Storage, parts []string) error {
 
@@ -17,7 +17,7 @@ func GetOrders(storage Storage, parts []string) error {
 		return fmt.Errorf("should be maximum 2 arguments: clientID (int) and count of orders you want to get")
 	}
 
-	clientID, err := strconv.Atoi(parts[1])
+	clientID, err := strconv.Atoi(parts[0])
 	if err != nil {
 		return fmt.Errorf("clientID is incorrect")
 	}
@@ -25,7 +25,7 @@ func GetOrders(storage Storage, parts []string) error {
 	// Определяем значение limit, если оно указано
 	limit := -1 // -1 будет означать, что ограничение не задано
 	if len(parts) == countOfArgumentsToGetOrders {
-		limit, err = strconv.Atoi(parts[2])
+		limit, err = strconv.Atoi(parts[1])
 		if err != nil {
 			return fmt.Errorf("limit is incorrect")
 		}

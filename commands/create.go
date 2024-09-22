@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	countOfArgumentsToCreate = 4
+	countOfArgumentsToCreate = 3
 	timeLayout               = "02.01.2006"
 )
 
@@ -23,12 +23,12 @@ func Create(storage Storage, parts []string) error {
 	}
 
 	// Получение и преобразование аргументов
-	clientID, err := strconv.ParseInt(parts[1], 10, 64)
+	clientID, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
 		return fmt.Errorf("clientID is incorrect")
 	}
 
-	orderID, err := strconv.ParseInt(parts[2], 10, 64)
+	orderID, err := strconv.ParseInt(parts[1], 10, 64)
 	if err != nil {
 		return fmt.Errorf("orderID is incorrect")
 	}
@@ -39,7 +39,7 @@ func Create(storage Storage, parts []string) error {
 		return fmt.Errorf("this orderID already exists")
 	}
 
-	date := parts[3]
+	date := parts[2]
 	parsedDate, err := time.Parse(timeLayout, date)
 	if err != nil {
 		return fmt.Errorf("date is incorrect")
