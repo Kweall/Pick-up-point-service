@@ -1,0 +1,16 @@
+@startuml
+interface Packaging {
+    NewPrice(weight float64, oldPrice int64) (int64, error)
+}
+
+struct Bag { 
+}
+struct Box { 
+}
+struct Film { 
+}
+
+Packaging --|> Bag
+Packaging --|> Box
+Packaging --|> Film
+@enduml

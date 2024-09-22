@@ -9,5 +9,5 @@ type Storage interface {
 	GiveOrdersToClient(skuIDs []int64) error
 	GetAll() (map[int64]*json_file.Order, error)
 	AcceptReturn(clientID, orderID int64) error
-	Validation(orderID int64) error
+	CheckIfExists(orderID int64) error
 }

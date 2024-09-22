@@ -1,9 +1,13 @@
 package commands
 
 import (
+	"bufio"
 	"fmt"
 	"homework/storage/json_file"
+	"math"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -30,9 +34,9 @@ func Create(storage Storage, parts []string) error {
 	}
 
 	// Проверяем, принимался ли этот заказ ранее
-	err = storage.Validation(orderID)
+	err = storage.CheckIfExists(orderID)
 	if err != nil {
-		return fmt.Errorf("validation have a problem")
+		return fmt.Errorf("this orderID already exists")
 	}
 
 	date := parts[2]
@@ -47,12 +51,71 @@ func Create(storage Storage, parts []string) error {
 		return fmt.Errorf("date is incorrect. Must be today or later")
 	}
 
+	// Добавляем вес, цену и выбор упаковки
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Printf("Specify the weight in kg (up to 3 decimal places)\n> ")
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return fmt.Errorf("error reading input: %v", err)
+	}
+	weight, err := strconv.ParseFloat(strings.TrimSpace(input), 64)
+	if err != nil {
+		return fmt.Errorf("invalid format, err: %v", err)
+	}
+	weight = math.Round(weight*1000) / 1000
+
+	fmt.Printf("Specify the price (int)\n> ")
+	input, err = reader.ReadString('\n')
+	if err != nil {
+		return fmt.Errorf("error reading input: %v", err)
+	}
+	price, err := strconv.ParseInt(strings.TrimSpace(input), 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid format, err: %v", err)
+	}
+
+	fmt.Printf("Specify the type of packaging \nbag - 5 units\nbox - 20 units\nfilm - 1 unit\n> ")
+	packagingType, err := reader.ReadString('\n')
+	if err != nil {
+		return fmt.Errorf("error reading input: %v", err)
+	}
+	packagingType = strings.ToLower(strings.TrimSpace(packagingType))
+	packaging, err := GetPackaging(packagingType)
+	if err != nil {
+		return fmt.Errorf("failed, err: %v", err)
+	}
+	if packaging.CheckWeight(weight) {
+		price += packaging.GetPrice()
+	} else {
+		return fmt.Errorf("cannot be packed in this type, the weight is too big")
+	}
+	var additionalFilm string
+	if packagingType != "film" {
+		fmt.Printf("Would you like to add additional film for 1 units? (yes or no)\n> ")
+		additionalFilm, err = reader.ReadString('\n') // Считываем строку до символа новой строки
+		if err != nil {
+			return fmt.Errorf("error reading input: %v", err)
+		}
+		additionalFilm = strings.ToLower(strings.TrimSpace(additionalFilm))
+		switch additionalFilm {
+		case "yes":
+			price += 1
+		case "no":
+		default:
+			return fmt.Errorf("invalid format")
+		}
+	}
+
 	// Создание нового заказа
 	newOrder := &json_file.Order{
-		ID:        orderID,
-		ClientID:  clientID,
-		CreatedAt: currentTime,
-		ExpiredAt: parsedDate,
+		ID:             orderID,
+		ClientID:       clientID,
+		CreatedAt:      currentTime,
+		ExpiredAt:      parsedDate,
+		Weight:         weight,
+		Price:          price,
+		Packaging:      packagingType,
+		AdditionalFilm: additionalFilm,
 	}
 
 	// Добавление заказа в хранилище
