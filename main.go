@@ -1,12 +1,7 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
-	"homework/commands"
-	"homework/storage/json_file"
-	"os"
-	"strings"
+	"homework/cmd"
 )
 
 func main() {
