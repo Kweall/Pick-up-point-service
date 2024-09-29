@@ -45,7 +45,8 @@ func Create(storage Storage, parts []string) error {
 		return fmt.Errorf("date is incorrect")
 	}
 
-	currentTime := time.Now()
+	currentTime := time.Now().Truncate(time.Minute)
+
 	// Сравниваем даты
 	if parsedDate.Before(currentTime) {
 		return fmt.Errorf("date is incorrect. Must be today or later")

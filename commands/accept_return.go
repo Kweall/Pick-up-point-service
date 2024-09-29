@@ -23,7 +23,7 @@ func AcceptReturn(storage Storage, parts []string) error {
 	}
 	err = storage.AcceptReturn(clientID, orderID)
 	if err != nil {
-		return fmt.Errorf("can't accept return, err: %v", err)
+		return fmt.Errorf("%v", err)
 	}
 	fmt.Printf("Return accepted for Order ID: %d, ClientID: %d\n", orderID, clientID)
 	return nil
