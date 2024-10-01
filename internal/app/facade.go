@@ -2,22 +2,9 @@ package app
 
 import (
 	"context"
-	"time"
 
 	"homework/internal/storage/postgres"
 )
-
-//go:generate mkdir -p ./mocks
-type Facade interface {
-	AddOrder(ctx context.Context, orderID int64, clientID int64, createdAt time.Time, expiredAt time.Time, weight float64, price int64, packaging string, additional_film string) error
-	DeleteOrder(ctx context.Context, orderID int64) error
-	GetOrders(ctx context.Context, clientID int64) ([]*postgres.Order, error)
-	GiveOrders(ctx context.Context, orderIDs []int64) error
-	AcceptReturn(ctx context.Context, clientID, orderID int64) error
-	CheckOrderStatus(ctx context.Context, orderID int64) (bool, bool, error)
-	GetReturns(ctx context.Context) ([]*postgres.Order, error)
-	GetOrdersByIDs(ctx context.Context, orderIDs []int64) ([]*postgres.Order, error)
-}
 
 type storageFacade struct {
 	txManager    postgres.TransactionManager
@@ -34,14 +21,23 @@ func NewStorageFacade(
 	}
 }
 
-func (s *storageFacade) AddOrder(ctx context.Context, orderID int64, clientID int64, createdAt time.Time, expiredAt time.Time, weight float64, price int64, packaging string, additional_film string) error {
+func (s *storageFacade) AddOrder(ctx context.Context, req *postgres.Order) error {
 	return s.txManager.RunSerializable(ctx, func(ctxTx context.Context) error {
-		err := s.pgRepository.AddOrderHistory(ctx, orderID)
+		err := s.pgRepository.AddOrderHistory(ctx, req.OrderID)
 		if err != nil {
 			return err
 		}
 
-		err = s.pgRepository.AddOrder(ctx, orderID, clientID, createdAt, expiredAt, weight, price, packaging, additional_film)
+		err = s.pgRepository.AddOrder(ctx, &postgres.Order{
+			OrderID:        req.OrderID,
+			ClientID:       req.ClientID,
+			CreatedAt:      req.CreatedAt,
+			ExpiredAt:      req.ExpiredAt,
+			Weight:         req.Weight,
+			Price:          req.Price,
+			Packaging:      req.Packaging,
+			AdditionalFilm: req.AdditionalFilm,
+		})
 		if err != nil {
 			return err
 		}

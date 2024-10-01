@@ -25,12 +25,12 @@ func NewPgRepository(txManager TransactionManager) *PgRepository {
 	}
 }
 
-func (r *PgRepository) AddOrder(ctx context.Context, orderID int64, clientID int64, createdAt time.Time, expiredAt time.Time, weight float64, price int64, packaging string, additional_film string) error {
+func (r *PgRepository) AddOrder(ctx context.Context, req *Order) error {
 	tx := r.txManager.GetQueryEngine(ctx)
 	_, err := tx.Exec(ctx, `
         INSERT INTO orders (order_id, client_id, created_at, expired_at, weight, price, packaging, additional_film)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    `, orderID, clientID, createdAt, expiredAt, weight, price, packaging, additional_film)
+    `, req.OrderID, req.ClientID, req.CreatedAt, req.ExpiredAt, req.Weight, req.Price, req.Packaging, req.AdditionalFilm)
 	if err != nil {
 		return err
 	}

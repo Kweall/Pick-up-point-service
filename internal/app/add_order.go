@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"homework/internal/storage/postgres"
 	"math"
 	"os"
 	"strconv"
@@ -19,7 +20,7 @@ type AddOrderRequest struct {
 	Weight         float64   `json:"Weight"`
 	Price          int64     `json:"Price"`
 	Packaging      string    `json:"Packaging"`
-	AdditionalFilm string    `json:"AdditionalFilm"`
+	AdditionalFilm bool      `json:"AdditionalFilm"`
 }
 
 type AddOrderResponse struct {
@@ -35,7 +36,7 @@ func (s *Service) AddOrder(ctx context.Context, req *AddOrderRequest, parts []st
 	if len(parts)-1 != countOfArgumentsToCreate {
 		return nil, fmt.Errorf("should be 3 arguments: clientID (int), OrderID (int), Expired_date (dd.mm.yyyy)")
 	}
-	req.AdditionalFilm = "no"
+
 	req.CreatedAt = time.Now().Truncate(time.Minute)
 	var err error
 
@@ -96,21 +97,31 @@ func (s *Service) AddOrder(ctx context.Context, req *AddOrderRequest, parts []st
 	req.Price += packaging.GetPrice()
 	if req.Packaging != "film" {
 		fmt.Printf("Would you like to add additional film for 1 units? (yes or no)\n> ")
-		req.AdditionalFilm, err = reader.ReadString('\n')
+		additionalFilm, err := reader.ReadString('\n')
 		if err != nil {
 			return nil, fmt.Errorf("error reading input: %v", err)
 		}
-		req.AdditionalFilm = strings.ToLower(strings.TrimSpace(req.AdditionalFilm))
-		switch req.AdditionalFilm {
+		additionalFilm = strings.ToLower(strings.TrimSpace(additionalFilm))
+		switch additionalFilm {
 		case "yes":
 			req.Price += 1
+			req.AdditionalFilm = true
 		case "no":
 		default:
 			return nil, fmt.Errorf("invalid format (you can choose between yes or no)")
 		}
 	}
 
-	err = s.storage.AddOrder(ctx, req.OrderID, req.ClientID, req.CreatedAt, req.ExpiredAt, req.Weight, req.Price, req.Packaging, req.AdditionalFilm)
+	err = s.storage.AddOrder(ctx, &postgres.Order{
+		OrderID:        req.OrderID,
+		ClientID:       req.ClientID,
+		CreatedAt:      &req.CreatedAt,
+		ExpiredAt:      &req.ExpiredAt,
+		Weight:         req.Weight,
+		Price:          req.Price,
+		Packaging:      req.Packaging,
+		AdditionalFilm: req.AdditionalFilm,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to add order: %v", err)
 	}

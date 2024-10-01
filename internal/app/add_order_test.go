@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"homework/internal/app/mocks"
+	"homework/internal/storage/postgres"
 	"os"
 	"testing"
 	"time"
@@ -47,19 +48,19 @@ func TestAddOrder(t *testing.T) {
 			wantErr: false,
 			mock: func(m *mocks.FacadeMock) {
 				parsedDate, _ := time.Parse(timeLayout, "15.12.2024")
-				fixedCreatedAt := time.Now().Truncate(time.Minute)
-				orderRequest := &AddOrderRequest{
+				createdAt := time.Now().Truncate(time.Minute)
+				req := &postgres.Order{
 					ClientID:       1,
 					OrderID:        100,
-					CreatedAt:      fixedCreatedAt,
-					ExpiredAt:      parsedDate,
+					CreatedAt:      &createdAt,
+					ExpiredAt:      &parsedDate,
 					Weight:         1.5,
 					Price:          500,
 					Packaging:      "box",
-					AdditionalFilm: "yes",
+					AdditionalFilm: true,
 				}
 
-				m.AddOrderMock.Expect(context.Background(), orderRequest.OrderID, orderRequest.ClientID, orderRequest.CreatedAt, orderRequest.ExpiredAt, orderRequest.Weight, orderRequest.Price, orderRequest.Packaging, orderRequest.AdditionalFilm).Return(nil)
+				m.AddOrderMock.Expect(context.Background(), req).Return(nil)
 			},
 		},
 	}
@@ -75,26 +76,29 @@ func TestAddOrder(t *testing.T) {
 
 			tt.mock(tt.args.storage.(*mocks.FacadeMock))
 
+			createdAt := time.Now().Truncate(time.Minute)
+
 			if !tt.wantErr {
 				parsedDate, _ := time.Parse(timeLayout, "15.12.2024")
-				req := &AddOrderRequest{
+				req := &postgres.Order{
 					ClientID:       1,
 					OrderID:        100,
-					CreatedAt:      time.Now().Truncate(time.Minute),
-					ExpiredAt:      parsedDate,
+					CreatedAt:      &createdAt,
+					ExpiredAt:      &parsedDate,
 					Weight:         1.5,
 					Price:          500,
 					Packaging:      "box",
-					AdditionalFilm: "yes",
+					AdditionalFilm: true,
 				}
 
 				// Вызов метода AddOrder
-				err := tt.args.storage.AddOrder(context.Background(), req.OrderID, req.ClientID, req.CreatedAt, req.ExpiredAt, req.Weight, req.Price, req.Packaging, req.AdditionalFilm)
+				err := tt.args.storage.AddOrder(context.Background(), req)
 				assert.NoError(t, err)
 			} else {
 				// Не ожидаем вызов метода AddOrder
+				var req *postgres.Order
 				assert.Panics(t, func() {
-					_ = tt.args.storage.AddOrder(context.Background(), 0, 0, time.Time{}, time.Time{}, 0, 0, "", "")
+					_ = tt.args.storage.AddOrder(context.Background(), req)
 				}, "expected to panic due to nil request")
 			}
 		})

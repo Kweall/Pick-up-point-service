@@ -7,7 +7,6 @@ import (
 	"homework/internal/storage/postgres"
 	"sync"
 	mm_atomic "sync/atomic"
-	"time"
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
@@ -25,9 +24,9 @@ type FacadeMock struct {
 	beforeAcceptReturnCounter uint64
 	AcceptReturnMock          mFacadeMockAcceptReturn
 
-	funcAddOrder          func(ctx context.Context, orderID int64, clientID int64, createdAt time.Time, expiredAt time.Time, weight float64, price int64, packaging string, additional_film string) (err error)
+	funcAddOrder          func(ctx context.Context, req *postgres.Order) (err error)
 	funcAddOrderOrigin    string
-	inspectFuncAddOrder   func(ctx context.Context, orderID int64, clientID int64, createdAt time.Time, expiredAt time.Time, weight float64, price int64, packaging string, additional_film string)
+	inspectFuncAddOrder   func(ctx context.Context, req *postgres.Order)
 	afterAddOrderCounter  uint64
 	beforeAddOrderCounter uint64
 	AddOrderMock          mFacadeMockAddOrder
@@ -511,28 +510,14 @@ type FacadeMockAddOrderExpectation struct {
 
 // FacadeMockAddOrderParams contains parameters of the Facade.AddOrder
 type FacadeMockAddOrderParams struct {
-	ctx             context.Context
-	orderID         int64
-	clientID        int64
-	createdAt       time.Time
-	expiredAt       time.Time
-	weight          float64
-	price           int64
-	packaging       string
-	additional_film string
+	ctx context.Context
+	req *postgres.Order
 }
 
 // FacadeMockAddOrderParamPtrs contains pointers to parameters of the Facade.AddOrder
 type FacadeMockAddOrderParamPtrs struct {
-	ctx             *context.Context
-	orderID         *int64
-	clientID        *int64
-	createdAt       *time.Time
-	expiredAt       *time.Time
-	weight          *float64
-	price           *int64
-	packaging       *string
-	additional_film *string
+	ctx *context.Context
+	req **postgres.Order
 }
 
 // FacadeMockAddOrderResults contains results of the Facade.AddOrder
@@ -542,16 +527,9 @@ type FacadeMockAddOrderResults struct {
 
 // FacadeMockAddOrderOrigins contains origins of expectations of the Facade.AddOrder
 type FacadeMockAddOrderExpectationOrigins struct {
-	origin                string
-	originCtx             string
-	originOrderID         string
-	originClientID        string
-	originCreatedAt       string
-	originExpiredAt       string
-	originWeight          string
-	originPrice           string
-	originPackaging       string
-	originAdditional_film string
+	origin    string
+	originCtx string
+	originReq string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -565,7 +543,7 @@ func (mmAddOrder *mFacadeMockAddOrder) Optional() *mFacadeMockAddOrder {
 }
 
 // Expect sets up expected params for Facade.AddOrder
-func (mmAddOrder *mFacadeMockAddOrder) Expect(ctx context.Context, orderID int64, clientID int64, createdAt time.Time, expiredAt time.Time, weight float64, price int64, packaging string, additional_film string) *mFacadeMockAddOrder {
+func (mmAddOrder *mFacadeMockAddOrder) Expect(ctx context.Context, req *postgres.Order) *mFacadeMockAddOrder {
 	if mmAddOrder.mock.funcAddOrder != nil {
 		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Set")
 	}
@@ -578,7 +556,7 @@ func (mmAddOrder *mFacadeMockAddOrder) Expect(ctx context.Context, orderID int64
 		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by ExpectParams functions")
 	}
 
-	mmAddOrder.defaultExpectation.params = &FacadeMockAddOrderParams{ctx, orderID, clientID, createdAt, expiredAt, weight, price, packaging, additional_film}
+	mmAddOrder.defaultExpectation.params = &FacadeMockAddOrderParams{ctx, req}
 	mmAddOrder.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmAddOrder.expectations {
 		if minimock.Equal(e.params, mmAddOrder.defaultExpectation.params) {
@@ -612,8 +590,8 @@ func (mmAddOrder *mFacadeMockAddOrder) ExpectCtxParam1(ctx context.Context) *mFa
 	return mmAddOrder
 }
 
-// ExpectOrderIDParam2 sets up expected param orderID for Facade.AddOrder
-func (mmAddOrder *mFacadeMockAddOrder) ExpectOrderIDParam2(orderID int64) *mFacadeMockAddOrder {
+// ExpectReqParam2 sets up expected param req for Facade.AddOrder
+func (mmAddOrder *mFacadeMockAddOrder) ExpectReqParam2(req *postgres.Order) *mFacadeMockAddOrder {
 	if mmAddOrder.mock.funcAddOrder != nil {
 		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Set")
 	}
@@ -629,175 +607,14 @@ func (mmAddOrder *mFacadeMockAddOrder) ExpectOrderIDParam2(orderID int64) *mFaca
 	if mmAddOrder.defaultExpectation.paramPtrs == nil {
 		mmAddOrder.defaultExpectation.paramPtrs = &FacadeMockAddOrderParamPtrs{}
 	}
-	mmAddOrder.defaultExpectation.paramPtrs.orderID = &orderID
-	mmAddOrder.defaultExpectation.expectationOrigins.originOrderID = minimock.CallerInfo(1)
-
-	return mmAddOrder
-}
-
-// ExpectClientIDParam3 sets up expected param clientID for Facade.AddOrder
-func (mmAddOrder *mFacadeMockAddOrder) ExpectClientIDParam3(clientID int64) *mFacadeMockAddOrder {
-	if mmAddOrder.mock.funcAddOrder != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Set")
-	}
-
-	if mmAddOrder.defaultExpectation == nil {
-		mmAddOrder.defaultExpectation = &FacadeMockAddOrderExpectation{}
-	}
-
-	if mmAddOrder.defaultExpectation.params != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Expect")
-	}
-
-	if mmAddOrder.defaultExpectation.paramPtrs == nil {
-		mmAddOrder.defaultExpectation.paramPtrs = &FacadeMockAddOrderParamPtrs{}
-	}
-	mmAddOrder.defaultExpectation.paramPtrs.clientID = &clientID
-	mmAddOrder.defaultExpectation.expectationOrigins.originClientID = minimock.CallerInfo(1)
-
-	return mmAddOrder
-}
-
-// ExpectCreatedAtParam4 sets up expected param createdAt for Facade.AddOrder
-func (mmAddOrder *mFacadeMockAddOrder) ExpectCreatedAtParam4(createdAt time.Time) *mFacadeMockAddOrder {
-	if mmAddOrder.mock.funcAddOrder != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Set")
-	}
-
-	if mmAddOrder.defaultExpectation == nil {
-		mmAddOrder.defaultExpectation = &FacadeMockAddOrderExpectation{}
-	}
-
-	if mmAddOrder.defaultExpectation.params != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Expect")
-	}
-
-	if mmAddOrder.defaultExpectation.paramPtrs == nil {
-		mmAddOrder.defaultExpectation.paramPtrs = &FacadeMockAddOrderParamPtrs{}
-	}
-	mmAddOrder.defaultExpectation.paramPtrs.createdAt = &createdAt
-	mmAddOrder.defaultExpectation.expectationOrigins.originCreatedAt = minimock.CallerInfo(1)
-
-	return mmAddOrder
-}
-
-// ExpectExpiredAtParam5 sets up expected param expiredAt for Facade.AddOrder
-func (mmAddOrder *mFacadeMockAddOrder) ExpectExpiredAtParam5(expiredAt time.Time) *mFacadeMockAddOrder {
-	if mmAddOrder.mock.funcAddOrder != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Set")
-	}
-
-	if mmAddOrder.defaultExpectation == nil {
-		mmAddOrder.defaultExpectation = &FacadeMockAddOrderExpectation{}
-	}
-
-	if mmAddOrder.defaultExpectation.params != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Expect")
-	}
-
-	if mmAddOrder.defaultExpectation.paramPtrs == nil {
-		mmAddOrder.defaultExpectation.paramPtrs = &FacadeMockAddOrderParamPtrs{}
-	}
-	mmAddOrder.defaultExpectation.paramPtrs.expiredAt = &expiredAt
-	mmAddOrder.defaultExpectation.expectationOrigins.originExpiredAt = minimock.CallerInfo(1)
-
-	return mmAddOrder
-}
-
-// ExpectWeightParam6 sets up expected param weight for Facade.AddOrder
-func (mmAddOrder *mFacadeMockAddOrder) ExpectWeightParam6(weight float64) *mFacadeMockAddOrder {
-	if mmAddOrder.mock.funcAddOrder != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Set")
-	}
-
-	if mmAddOrder.defaultExpectation == nil {
-		mmAddOrder.defaultExpectation = &FacadeMockAddOrderExpectation{}
-	}
-
-	if mmAddOrder.defaultExpectation.params != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Expect")
-	}
-
-	if mmAddOrder.defaultExpectation.paramPtrs == nil {
-		mmAddOrder.defaultExpectation.paramPtrs = &FacadeMockAddOrderParamPtrs{}
-	}
-	mmAddOrder.defaultExpectation.paramPtrs.weight = &weight
-	mmAddOrder.defaultExpectation.expectationOrigins.originWeight = minimock.CallerInfo(1)
-
-	return mmAddOrder
-}
-
-// ExpectPriceParam7 sets up expected param price for Facade.AddOrder
-func (mmAddOrder *mFacadeMockAddOrder) ExpectPriceParam7(price int64) *mFacadeMockAddOrder {
-	if mmAddOrder.mock.funcAddOrder != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Set")
-	}
-
-	if mmAddOrder.defaultExpectation == nil {
-		mmAddOrder.defaultExpectation = &FacadeMockAddOrderExpectation{}
-	}
-
-	if mmAddOrder.defaultExpectation.params != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Expect")
-	}
-
-	if mmAddOrder.defaultExpectation.paramPtrs == nil {
-		mmAddOrder.defaultExpectation.paramPtrs = &FacadeMockAddOrderParamPtrs{}
-	}
-	mmAddOrder.defaultExpectation.paramPtrs.price = &price
-	mmAddOrder.defaultExpectation.expectationOrigins.originPrice = minimock.CallerInfo(1)
-
-	return mmAddOrder
-}
-
-// ExpectPackagingParam8 sets up expected param packaging for Facade.AddOrder
-func (mmAddOrder *mFacadeMockAddOrder) ExpectPackagingParam8(packaging string) *mFacadeMockAddOrder {
-	if mmAddOrder.mock.funcAddOrder != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Set")
-	}
-
-	if mmAddOrder.defaultExpectation == nil {
-		mmAddOrder.defaultExpectation = &FacadeMockAddOrderExpectation{}
-	}
-
-	if mmAddOrder.defaultExpectation.params != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Expect")
-	}
-
-	if mmAddOrder.defaultExpectation.paramPtrs == nil {
-		mmAddOrder.defaultExpectation.paramPtrs = &FacadeMockAddOrderParamPtrs{}
-	}
-	mmAddOrder.defaultExpectation.paramPtrs.packaging = &packaging
-	mmAddOrder.defaultExpectation.expectationOrigins.originPackaging = minimock.CallerInfo(1)
-
-	return mmAddOrder
-}
-
-// ExpectAdditional_filmParam9 sets up expected param additional_film for Facade.AddOrder
-func (mmAddOrder *mFacadeMockAddOrder) ExpectAdditional_filmParam9(additional_film string) *mFacadeMockAddOrder {
-	if mmAddOrder.mock.funcAddOrder != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Set")
-	}
-
-	if mmAddOrder.defaultExpectation == nil {
-		mmAddOrder.defaultExpectation = &FacadeMockAddOrderExpectation{}
-	}
-
-	if mmAddOrder.defaultExpectation.params != nil {
-		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Expect")
-	}
-
-	if mmAddOrder.defaultExpectation.paramPtrs == nil {
-		mmAddOrder.defaultExpectation.paramPtrs = &FacadeMockAddOrderParamPtrs{}
-	}
-	mmAddOrder.defaultExpectation.paramPtrs.additional_film = &additional_film
-	mmAddOrder.defaultExpectation.expectationOrigins.originAdditional_film = minimock.CallerInfo(1)
+	mmAddOrder.defaultExpectation.paramPtrs.req = &req
+	mmAddOrder.defaultExpectation.expectationOrigins.originReq = minimock.CallerInfo(1)
 
 	return mmAddOrder
 }
 
 // Inspect accepts an inspector function that has same arguments as the Facade.AddOrder
-func (mmAddOrder *mFacadeMockAddOrder) Inspect(f func(ctx context.Context, orderID int64, clientID int64, createdAt time.Time, expiredAt time.Time, weight float64, price int64, packaging string, additional_film string)) *mFacadeMockAddOrder {
+func (mmAddOrder *mFacadeMockAddOrder) Inspect(f func(ctx context.Context, req *postgres.Order)) *mFacadeMockAddOrder {
 	if mmAddOrder.mock.inspectFuncAddOrder != nil {
 		mmAddOrder.mock.t.Fatalf("Inspect function is already set for FacadeMock.AddOrder")
 	}
@@ -822,7 +639,7 @@ func (mmAddOrder *mFacadeMockAddOrder) Return(err error) *FacadeMock {
 }
 
 // Set uses given function f to mock the Facade.AddOrder method
-func (mmAddOrder *mFacadeMockAddOrder) Set(f func(ctx context.Context, orderID int64, clientID int64, createdAt time.Time, expiredAt time.Time, weight float64, price int64, packaging string, additional_film string) (err error)) *FacadeMock {
+func (mmAddOrder *mFacadeMockAddOrder) Set(f func(ctx context.Context, req *postgres.Order) (err error)) *FacadeMock {
 	if mmAddOrder.defaultExpectation != nil {
 		mmAddOrder.mock.t.Fatalf("Default expectation is already set for the Facade.AddOrder method")
 	}
@@ -838,14 +655,14 @@ func (mmAddOrder *mFacadeMockAddOrder) Set(f func(ctx context.Context, orderID i
 
 // When sets expectation for the Facade.AddOrder which will trigger the result defined by the following
 // Then helper
-func (mmAddOrder *mFacadeMockAddOrder) When(ctx context.Context, orderID int64, clientID int64, createdAt time.Time, expiredAt time.Time, weight float64, price int64, packaging string, additional_film string) *FacadeMockAddOrderExpectation {
+func (mmAddOrder *mFacadeMockAddOrder) When(ctx context.Context, req *postgres.Order) *FacadeMockAddOrderExpectation {
 	if mmAddOrder.mock.funcAddOrder != nil {
 		mmAddOrder.mock.t.Fatalf("FacadeMock.AddOrder mock is already set by Set")
 	}
 
 	expectation := &FacadeMockAddOrderExpectation{
 		mock:               mmAddOrder.mock,
-		params:             &FacadeMockAddOrderParams{ctx, orderID, clientID, createdAt, expiredAt, weight, price, packaging, additional_film},
+		params:             &FacadeMockAddOrderParams{ctx, req},
 		expectationOrigins: FacadeMockAddOrderExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmAddOrder.expectations = append(mmAddOrder.expectations, expectation)
@@ -880,17 +697,17 @@ func (mmAddOrder *mFacadeMockAddOrder) invocationsDone() bool {
 }
 
 // AddOrder implements mm_app.Facade
-func (mmAddOrder *FacadeMock) AddOrder(ctx context.Context, orderID int64, clientID int64, createdAt time.Time, expiredAt time.Time, weight float64, price int64, packaging string, additional_film string) (err error) {
+func (mmAddOrder *FacadeMock) AddOrder(ctx context.Context, req *postgres.Order) (err error) {
 	mm_atomic.AddUint64(&mmAddOrder.beforeAddOrderCounter, 1)
 	defer mm_atomic.AddUint64(&mmAddOrder.afterAddOrderCounter, 1)
 
 	mmAddOrder.t.Helper()
 
 	if mmAddOrder.inspectFuncAddOrder != nil {
-		mmAddOrder.inspectFuncAddOrder(ctx, orderID, clientID, createdAt, expiredAt, weight, price, packaging, additional_film)
+		mmAddOrder.inspectFuncAddOrder(ctx, req)
 	}
 
-	mm_params := FacadeMockAddOrderParams{ctx, orderID, clientID, createdAt, expiredAt, weight, price, packaging, additional_film}
+	mm_params := FacadeMockAddOrderParams{ctx, req}
 
 	// Record call args
 	mmAddOrder.AddOrderMock.mutex.Lock()
@@ -909,7 +726,7 @@ func (mmAddOrder *FacadeMock) AddOrder(ctx context.Context, orderID int64, clien
 		mm_want := mmAddOrder.AddOrderMock.defaultExpectation.params
 		mm_want_ptrs := mmAddOrder.AddOrderMock.defaultExpectation.paramPtrs
 
-		mm_got := FacadeMockAddOrderParams{ctx, orderID, clientID, createdAt, expiredAt, weight, price, packaging, additional_film}
+		mm_got := FacadeMockAddOrderParams{ctx, req}
 
 		if mm_want_ptrs != nil {
 
@@ -918,44 +735,9 @@ func (mmAddOrder *FacadeMock) AddOrder(ctx context.Context, orderID int64, clien
 					mmAddOrder.AddOrderMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
 			}
 
-			if mm_want_ptrs.orderID != nil && !minimock.Equal(*mm_want_ptrs.orderID, mm_got.orderID) {
-				mmAddOrder.t.Errorf("FacadeMock.AddOrder got unexpected parameter orderID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmAddOrder.AddOrderMock.defaultExpectation.expectationOrigins.originOrderID, *mm_want_ptrs.orderID, mm_got.orderID, minimock.Diff(*mm_want_ptrs.orderID, mm_got.orderID))
-			}
-
-			if mm_want_ptrs.clientID != nil && !minimock.Equal(*mm_want_ptrs.clientID, mm_got.clientID) {
-				mmAddOrder.t.Errorf("FacadeMock.AddOrder got unexpected parameter clientID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmAddOrder.AddOrderMock.defaultExpectation.expectationOrigins.originClientID, *mm_want_ptrs.clientID, mm_got.clientID, minimock.Diff(*mm_want_ptrs.clientID, mm_got.clientID))
-			}
-
-			if mm_want_ptrs.createdAt != nil && !minimock.Equal(*mm_want_ptrs.createdAt, mm_got.createdAt) {
-				mmAddOrder.t.Errorf("FacadeMock.AddOrder got unexpected parameter createdAt, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmAddOrder.AddOrderMock.defaultExpectation.expectationOrigins.originCreatedAt, *mm_want_ptrs.createdAt, mm_got.createdAt, minimock.Diff(*mm_want_ptrs.createdAt, mm_got.createdAt))
-			}
-
-			if mm_want_ptrs.expiredAt != nil && !minimock.Equal(*mm_want_ptrs.expiredAt, mm_got.expiredAt) {
-				mmAddOrder.t.Errorf("FacadeMock.AddOrder got unexpected parameter expiredAt, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmAddOrder.AddOrderMock.defaultExpectation.expectationOrigins.originExpiredAt, *mm_want_ptrs.expiredAt, mm_got.expiredAt, minimock.Diff(*mm_want_ptrs.expiredAt, mm_got.expiredAt))
-			}
-
-			if mm_want_ptrs.weight != nil && !minimock.Equal(*mm_want_ptrs.weight, mm_got.weight) {
-				mmAddOrder.t.Errorf("FacadeMock.AddOrder got unexpected parameter weight, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmAddOrder.AddOrderMock.defaultExpectation.expectationOrigins.originWeight, *mm_want_ptrs.weight, mm_got.weight, minimock.Diff(*mm_want_ptrs.weight, mm_got.weight))
-			}
-
-			if mm_want_ptrs.price != nil && !minimock.Equal(*mm_want_ptrs.price, mm_got.price) {
-				mmAddOrder.t.Errorf("FacadeMock.AddOrder got unexpected parameter price, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmAddOrder.AddOrderMock.defaultExpectation.expectationOrigins.originPrice, *mm_want_ptrs.price, mm_got.price, minimock.Diff(*mm_want_ptrs.price, mm_got.price))
-			}
-
-			if mm_want_ptrs.packaging != nil && !minimock.Equal(*mm_want_ptrs.packaging, mm_got.packaging) {
-				mmAddOrder.t.Errorf("FacadeMock.AddOrder got unexpected parameter packaging, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmAddOrder.AddOrderMock.defaultExpectation.expectationOrigins.originPackaging, *mm_want_ptrs.packaging, mm_got.packaging, minimock.Diff(*mm_want_ptrs.packaging, mm_got.packaging))
-			}
-
-			if mm_want_ptrs.additional_film != nil && !minimock.Equal(*mm_want_ptrs.additional_film, mm_got.additional_film) {
-				mmAddOrder.t.Errorf("FacadeMock.AddOrder got unexpected parameter additional_film, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmAddOrder.AddOrderMock.defaultExpectation.expectationOrigins.originAdditional_film, *mm_want_ptrs.additional_film, mm_got.additional_film, minimock.Diff(*mm_want_ptrs.additional_film, mm_got.additional_film))
+			if mm_want_ptrs.req != nil && !minimock.Equal(*mm_want_ptrs.req, mm_got.req) {
+				mmAddOrder.t.Errorf("FacadeMock.AddOrder got unexpected parameter req, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmAddOrder.AddOrderMock.defaultExpectation.expectationOrigins.originReq, *mm_want_ptrs.req, mm_got.req, minimock.Diff(*mm_want_ptrs.req, mm_got.req))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
@@ -970,9 +752,9 @@ func (mmAddOrder *FacadeMock) AddOrder(ctx context.Context, orderID int64, clien
 		return (*mm_results).err
 	}
 	if mmAddOrder.funcAddOrder != nil {
-		return mmAddOrder.funcAddOrder(ctx, orderID, clientID, createdAt, expiredAt, weight, price, packaging, additional_film)
+		return mmAddOrder.funcAddOrder(ctx, req)
 	}
-	mmAddOrder.t.Fatalf("Unexpected call to FacadeMock.AddOrder. %v %v %v %v %v %v %v %v %v", ctx, orderID, clientID, createdAt, expiredAt, weight, price, packaging, additional_film)
+	mmAddOrder.t.Fatalf("Unexpected call to FacadeMock.AddOrder. %v %v", ctx, req)
 	return
 }
 

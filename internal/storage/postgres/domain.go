@@ -14,7 +14,7 @@ type Order struct {
 	Weight         float64    `db:"weight"`
 	Price          int64      `db:"price"`
 	Packaging      string     `db:"packaging"`
-	AdditionalFilm string     `db:"additional_film"`
+	AdditionalFilm bool       `db:"additional_film"`
 }
 
 type OrderHistory struct {

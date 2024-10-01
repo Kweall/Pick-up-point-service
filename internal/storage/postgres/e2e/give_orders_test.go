@@ -19,7 +19,19 @@ func TestE2E_GiveOrders(t *testing.T) {
 	txManager := postgres.NewTxManager(pool)
 	repo := postgres.NewPgRepository(txManager)
 
-	err = repo.AddOrder(ctx, 10, 100, time.Now(), time.Now().Add(24*time.Hour), 1.5, 500, "Box", "None")
+	createdAt := time.Now().Truncate(time.Minute)
+	parsedDate := createdAt.Add(24 * time.Hour)
+	req := &postgres.Order{
+		ClientID:       1,
+		OrderID:        100,
+		CreatedAt:      &createdAt,
+		ExpiredAt:      &parsedDate,
+		Weight:         1.5,
+		Price:          500,
+		Packaging:      "box",
+		AdditionalFilm: true,
+	}
+	err = repo.AddOrder(ctx, req)
 	require.NoError(t, err)
 
 	err = repo.GiveOrders(ctx, []int64{10})

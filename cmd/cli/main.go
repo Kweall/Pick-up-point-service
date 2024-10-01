@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"homework/internal/app"
+	"homework/internal/config"
 	"homework/internal/storage/postgres"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -21,21 +22,26 @@ var (
 )
 
 func main() {
-	const psqlDSN = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+	// const psqlDSN = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	flag.Parse()
 	ctx := context.Background()
-	pool, err := pgxpool.Connect(ctx, psqlDSN)
+	pool, err := pgxpool.Connect(ctx, cfg.PsqlDSN)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer pool.Close()
 
 	// err = app.ClearTables(pool)
-	err = app.GenerateFakeOrders(pool, 100)
-	if err != nil {
-		log.Fatalf("Error generating fake orders: %v", err)
-	}
+	// err = app.GenerateFakeOrders(pool, 100)
+	// if err != nil {
+	// 	log.Fatalf("Error generating fake orders: %v", err)
+	// }
 
 	fmt.Println("Successfully generated test data!")
 	storageFacade := newStorageFacade(pool)
