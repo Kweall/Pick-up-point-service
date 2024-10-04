@@ -1,0 +1,35 @@
+volumes:
+  postgresql_data:
+
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    restart: always
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    container_name: postgres
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      - PSQL_DSN=postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+    ports:
+      - "8080:8080"
+    container_name: go_app
+    command:
+      - /bin/sh
+      - -c
+      - |
+        env
+        tail -f /dev/null
