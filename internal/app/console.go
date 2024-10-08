@@ -20,19 +20,19 @@ type Task struct {
 	DataFlag *string
 }
 
-func worker(ctx context.Context, id int, taskChan chan Task, service *Service, wg *sync.WaitGroup) {
+func worker(ctx context.Context, id int, taskChan chan Task, service *Service, wg *sync.WaitGroup) error {
 	defer wg.Done()
 	for {
 		select {
 		case task, ok := <-taskChan:
 			if !ok {
-				fmt.Printf("Worker %d have a problem\n", id)
-				return
+				return fmt.Errorf("worker %d have a problem", id)
 			}
-			runCommand(ctx, service, task.Parts, task.DataFlag)
+			if err := runCommand(ctx, service, task.Parts, task.DataFlag); err != nil {
+				return fmt.Errorf("worker %d: error executing command: %v", id, err)
+			}
 		case <-ctx.Done():
-			fmt.Printf("Worker %d: received shutdown signal\n", id)
-			return
+			return fmt.Errorf("worker %d: received shutdown signal", id)
 		}
 	}
 }
@@ -44,19 +44,17 @@ func RunCLI(ctx context.Context, service *Service, dataFlag *string) error {
 	taskChan := make(chan Task)
 	var wg sync.WaitGroup
 	numWorkers := 2
-	workerCtx, cancelWorkers := context.WithCancel(ctx)
+	workerCtx, cancelWorkers := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer cancelWorkers()
 	for i := 1; i <= numWorkers; i++ {
 		wg.Add(1)
 		go worker(workerCtx, i, taskChan, service, &wg)
 	}
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-
 	shutdownChan := make(chan struct{})
 
 	go func() {
-		<-signalChan
+		<-workerCtx.Done()
 		fmt.Println("\nReceived shutdown signal, terminating gracefully...")
 		cancelWorkers()
 		close(taskChan)
@@ -64,81 +62,93 @@ func RunCLI(ctx context.Context, service *Service, dataFlag *string) error {
 		close(shutdownChan)
 	}()
 
-	go func() {
-		reader := bufio.NewReader(os.Stdin)
-		for {
-			select {
-			case <-shutdownChan:
-				return
-			default:
-				input, err := reader.ReadString('\n')
-				if err != nil {
-					fmt.Printf("error reading input: %v", err)
-					return
-				}
-
-				command := strings.TrimSpace(input)
-				parts := strings.Fields(command)
-				if len(parts) == 0 {
-					continue
-				}
-
-				switch parts[0] {
-				case "help":
-					printHelp()
-				case "exit":
-					fmt.Println("Exiting...")
-					cancelWorkers()
-					close(taskChan)
-					wg.Wait()
-					close(shutdownChan)
-					return
-				case "AddWorkers":
-					if len(parts) != 2 {
-						fmt.Println("Usage: AddWorkers count")
-						continue
-					}
-					count, err := strconv.Atoi(parts[1])
-					if err != nil || count <= 0 {
-						fmt.Println("Invalid count for workers")
-						continue
-					}
-					for i := 0; i < count; i++ {
-						wg.Add(1)
-						go worker(workerCtx, numWorkers+1, taskChan, service, &wg)
-						numWorkers++
-					}
-					fmt.Printf("%d workers added. Total workers: %d\n", count, numWorkers)
-				default:
-					t := Task{
-						Command:  parts[0],
-						Parts:    parts,
-						DataFlag: dataFlag,
-					}
-					if t.Command == "AddOrder" {
-						var mu sync.Mutex
-						mu.Lock()
-						defer mu.Unlock()
-						runCommand(ctx, service, t.Parts, t.DataFlag)
-						continue
-					}
-					taskChan <- t
-				}
-			}
-		}
-	}()
+	go userInput(workerCtx, service, taskChan, &wg, shutdownChan, cancelWorkers, &numWorkers, dataFlag)
 
 	<-shutdownChan
 	fmt.Println("Gracefully shutdown completed.")
 	return nil
 }
 
-func runCommand(ctx context.Context, service *Service, parts []string, dataFlag *string) {
+func userInput(workerCtx context.Context, service *Service, taskChan chan Task, wg *sync.WaitGroup, shutdownChan chan struct{}, cancelWorkers context.CancelFunc, numWorkers *int, dataFlag *string) error {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		select {
+		case <-shutdownChan:
+			return fmt.Errorf("closing")
+		default:
+			input, err := reader.ReadString('\n')
+			if err != nil {
+				return fmt.Errorf("error reading input: %v", err)
+			}
+
+			command := strings.TrimSpace(input)
+			parts := strings.Fields(command)
+			if len(parts) == 0 {
+				continue
+			}
+
+			switch parts[0] {
+			case "help":
+				printHelp()
+			case "exit":
+				fmt.Println("Exiting...")
+				cancelWorkers()
+				return nil
+			case "AddWorkers":
+				if err = addWorkers(parts, workerCtx, service, taskChan, wg, numWorkers); err != nil {
+					return err
+				}
+			default:
+				t := Task{
+					Command:  parts[0],
+					Parts:    parts,
+					DataFlag: dataFlag,
+				}
+				if t.Command == "AddOrder" {
+					var mu sync.Mutex
+					mu.Lock()
+					defer mu.Unlock()
+					if err := runCommand(workerCtx, service, t.Parts, t.DataFlag); err != nil {
+						fmt.Println(err)
+					}
+					continue
+				}
+				select {
+				case taskChan <- t:
+				case <-workerCtx.Done():
+					return nil
+				}
+			}
+		}
+	}
+}
+
+func addWorkers(parts []string, workerCtx context.Context, service *Service, taskChan chan Task, wg *sync.WaitGroup, numWorkers *int) error {
+	if len(parts) != 2 {
+		return fmt.Errorf("usage: AddWorkers count")
+	}
+	count, err := strconv.Atoi(parts[1])
+	if err != nil || count <= 0 {
+		return fmt.Errorf("invalid count for workers")
+	}
+	for i := 0; i < count; i++ {
+		wg.Add(1)
+		go worker(workerCtx, *numWorkers+1, taskChan, service, wg)
+		*numWorkers++
+	}
+	fmt.Printf("%d workers added. Total workers: %d\n", count, *numWorkers)
+	return nil
+}
+
+func runCommand(ctx context.Context, service *Service, parts []string, dataFlag *string) error {
 	var (
 		resp    any
 		respErr error
 		err     error
 	)
+	if len(parts) == 0 {
+		return fmt.Errorf("input message is empty")
+	}
 	switch parts[0] {
 	case "AddOrder":
 		var req AddOrderRequest
@@ -180,15 +190,17 @@ func runCommand(ctx context.Context, service *Service, parts []string, dataFlag 
 		respErr = fmt.Errorf("unknown command: %s", parts[0])
 	}
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
-	data, _ := json.Marshal(resp)
-	resp = nil
+	data, err := json.Marshal(resp)
+	if err != nil {
+		return fmt.Errorf("error with marshaling: %v", err)
+	}
 	if respErr != nil {
 		log.Printf("resp: %s, err: %v\n", data, respErr)
-		respErr = nil
 	}
+	return fmt.Errorf("%v", respErr)
 }
 
 func printHelp() {
