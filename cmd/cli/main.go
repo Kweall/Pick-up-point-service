@@ -17,7 +17,7 @@ var (
 )
 
 func main() {
-	//const psqlDSN = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+	// const psqlDSN = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -25,8 +25,10 @@ func main() {
 	}
 
 	flag.Parse()
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	pool, err := pgxpool.Connect(ctx, cfg.PsqlDSN)
+	// pool, err := pgxpool.Connect(ctx, psqlDSN)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,8 +44,7 @@ func main() {
 	storageFacade := newStorageFacade(pool)
 	service := app.NewService(storageFacade)
 
-	err = app.RunCLI(ctx, service, dataFlag)
-	if err != nil {
+	if err := app.RunCLI(ctx, service, dataFlag); err != nil {
 		log.Fatal(err)
 	}
 }

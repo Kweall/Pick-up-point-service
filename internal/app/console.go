@@ -44,32 +44,31 @@ func RunCLI(ctx context.Context, service *Service, dataFlag *string) error {
 	taskChan := make(chan Task)
 	var wg sync.WaitGroup
 	numWorkers := 2
-	workerCtx, cancelWorkers := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-	defer cancelWorkers()
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 	for i := 1; i <= numWorkers; i++ {
 		wg.Add(1)
-		go worker(workerCtx, i, taskChan, service, &wg)
+		go worker(ctx, i, taskChan, service, &wg)
 	}
 
 	shutdownChan := make(chan struct{})
 
 	go func() {
-		<-workerCtx.Done()
+		<-ctx.Done()
 		fmt.Println("\nReceived shutdown signal, terminating gracefully...")
-		cancelWorkers()
 		close(taskChan)
 		wg.Wait()
 		close(shutdownChan)
 	}()
 
-	go userInput(workerCtx, service, taskChan, &wg, shutdownChan, cancelWorkers, &numWorkers, dataFlag)
+	go userInput(ctx, service, taskChan, &wg, shutdownChan, cancel, &numWorkers, dataFlag)
 
 	<-shutdownChan
 	fmt.Println("Gracefully shutdown completed.")
 	return nil
 }
 
-func userInput(workerCtx context.Context, service *Service, taskChan chan Task, wg *sync.WaitGroup, shutdownChan chan struct{}, cancelWorkers context.CancelFunc, numWorkers *int, dataFlag *string) error {
+func userInput(ctx context.Context, service *Service, taskChan chan Task, wg *sync.WaitGroup, shutdownChan chan struct{}, cancel context.CancelFunc, numWorkers *int, dataFlag *string) error {
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		select {
@@ -92,10 +91,10 @@ func userInput(workerCtx context.Context, service *Service, taskChan chan Task, 
 				printHelp()
 			case "exit":
 				fmt.Println("Exiting...")
-				cancelWorkers()
+				cancel()
 				return nil
 			case "AddWorkers":
-				if err = addWorkers(parts, workerCtx, service, taskChan, wg, numWorkers); err != nil {
+				if err = addWorkers(parts, ctx, service, taskChan, wg, numWorkers); err != nil {
 					return err
 				}
 			default:
@@ -108,14 +107,14 @@ func userInput(workerCtx context.Context, service *Service, taskChan chan Task, 
 					var mu sync.Mutex
 					mu.Lock()
 					defer mu.Unlock()
-					if err := runCommand(workerCtx, service, t.Parts, t.DataFlag); err != nil {
+					if err := runCommand(ctx, service, t.Parts, t.DataFlag); err != nil {
 						fmt.Println(err)
 					}
 					continue
 				}
 				select {
 				case taskChan <- t:
-				case <-workerCtx.Done():
+				case <-ctx.Done():
 					return nil
 				}
 			}
@@ -123,7 +122,7 @@ func userInput(workerCtx context.Context, service *Service, taskChan chan Task, 
 	}
 }
 
-func addWorkers(parts []string, workerCtx context.Context, service *Service, taskChan chan Task, wg *sync.WaitGroup, numWorkers *int) error {
+func addWorkers(parts []string, ctx context.Context, service *Service, taskChan chan Task, wg *sync.WaitGroup, numWorkers *int) error {
 	if len(parts) != 2 {
 		return fmt.Errorf("usage: AddWorkers count")
 	}
@@ -133,7 +132,7 @@ func addWorkers(parts []string, workerCtx context.Context, service *Service, tas
 	}
 	for i := 0; i < count; i++ {
 		wg.Add(1)
-		go worker(workerCtx, *numWorkers+1, taskChan, service, wg)
+		go worker(ctx, *numWorkers+1, taskChan, service, wg)
 		*numWorkers++
 	}
 	fmt.Printf("%d workers added. Total workers: %d\n", count, *numWorkers)
@@ -198,9 +197,9 @@ func runCommand(ctx context.Context, service *Service, parts []string, dataFlag 
 		return fmt.Errorf("error with marshaling: %v", err)
 	}
 	if respErr != nil {
-		log.Printf("resp: %s, err: %v\n", data, respErr)
+		fmt.Errorf("resp: %s, err: %v", data, respErr)
 	}
-	return fmt.Errorf("%v", respErr)
+	return nil
 }
 
 func printHelp() {
