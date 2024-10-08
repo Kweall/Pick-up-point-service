@@ -197,7 +197,7 @@ func runCommand(ctx context.Context, service *Service, parts []string, dataFlag 
 		return fmt.Errorf("error with marshaling: %v", err)
 	}
 	if respErr != nil {
-		fmt.Errorf("resp: %s, err: %v", data, respErr)
+		return fmt.Errorf("resp: %s, err: %v", data, respErr)
 	}
 	return nil
 }
