@@ -21,6 +21,9 @@ func (s *Implementation) GetOrders(ctx context.Context, req *desc.GetOrdersReque
 	res := &desc.GetOrdersResponse{
 		Orders: make([]*desc.Order, 0, len(orders)),
 	}
+	if len(orders) == 0 {
+		return nil, status.Error(codes.NotFound, "client not found")
+	}
 	for _, order := range orders {
 		res.Orders = append(res.Orders, &desc.Order{
 			OrderId:  order.OrderID,

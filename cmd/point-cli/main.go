@@ -32,14 +32,14 @@ func main() {
 	}
 	defer conn.Close()
 
-	pointSericeClient := point_service.NewPointServiceClient(conn)
+	pointServiceClient := point_service.NewPointServiceClient(conn)
 
 	ctx := context.Background()
 	md := metadataParse()
 	// ctx = metadata.NewOutgoingContext(ctx, metadata.New(md))
 	ctx = metadata.AppendToOutgoingContext(ctx, md...)
 
-	// resp, err := pointSericeClient.GetOrders(ctx, &point_service.GetOrdersRequest{})
+	// resp, err := pointServiceClient.GetOrders(ctx, &point_service.GetOrdersRequest{})
 
 	var (
 		resp    proto.Message
@@ -52,37 +52,37 @@ func main() {
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = pointSericeClient.AddOrder(ctx, req)
+		resp, respErr = pointServiceClient.AddOrder(ctx, req)
 	case "DeleteOrder":
 		req := &point_service.DeleteOrderRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = pointSericeClient.DeleteOrder(ctx, req)
+		resp, respErr = pointServiceClient.DeleteOrder(ctx, req)
 	case "GetOrders":
 		req := &point_service.GetOrdersRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = pointSericeClient.GetOrders(ctx, req)
+		resp, respErr = pointServiceClient.GetOrders(ctx, req)
 	case "GiveOrders":
 		req := &point_service.GiveOrderRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = pointSericeClient.GiveOrder(ctx, req)
+		resp, respErr = pointServiceClient.GiveOrder(ctx, req)
 	case "AcceptReturn":
 		req := &point_service.AcceptReturnRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = pointSericeClient.AcceptReturn(ctx, req)
+		resp, respErr = pointServiceClient.AcceptReturn(ctx, req)
 	case "GetReturns":
 		req := &point_service.GetReturnsRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = pointSericeClient.GetReturns(ctx, req)
+		resp, respErr = pointServiceClient.GetReturns(ctx, req)
 	default:
 		log.Fatalf("unknown command: %s", *methodFlag)
 	}
