@@ -11,6 +11,7 @@ import (
 	"homework/internal/app"
 	"homework/internal/app/mw"
 	"homework/internal/app/point_service"
+	"homework/internal/config"
 	"homework/internal/storage/postgres"
 	desc "homework/pkg/point-service/v1"
 
@@ -22,46 +23,27 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-const (
-	psqlDSN   = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
-	grpcHost  = "127.0.0.1:7001"
-	httpHost  = "127.0.0.1:7000"
-	adminHost = "127.0.0.1:7002"
-)
-
 func main() {
 
-	// cfg, err := config.LoadConfig()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	flag.Parse()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	// pool, err := pgxpool.Connect(ctx, cfg.PsqlDSN)
-	pool, err := pgxpool.Connect(ctx, psqlDSN)
+	pool, err := pgxpool.Connect(ctx, cfg.PsqlDSN)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer pool.Close()
 
-	// err = app.ClearTables(pool)
-	// err = app.GenerateFakeOrders(pool, 100)
-	// if err != nil {
-	// 	log.Fatalf("Error generating fake orders: %v", err)
-	// }
-
-	//fmt.Println("Successfully generated test data!")
 	storageFacade := newStorageFacade(pool)
-	// service := app.NewService(storageFacade)
 
-	// if err := app.RunCLI(ctx, service, dataFlag); err != nil {
-	// 	log.Fatal(err)
-	// }
 	pointService := point_service.NewImplementation(storageFacade)
 
-	lis, err := net.Listen("tcp", grpcHost)
+	lis, err := net.Listen("tcp", cfg.GrpcHost)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -74,7 +56,7 @@ func main() {
 	desc.RegisterPointServiceServer(grpcServer, pointService)
 
 	mux := runtime.NewServeMux()
-	err = desc.RegisterPointServiceHandlerFromEndpoint(ctx, mux, grpcHost, []grpc.DialOption{
+	err = desc.RegisterPointServiceHandlerFromEndpoint(ctx, mux, cfg.GrpcHost, []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	})
 	if err != nil {
@@ -82,7 +64,7 @@ func main() {
 	}
 
 	go func() {
-		if err = http.ListenAndServe(httpHost, mux); err != nil {
+		if err = http.ListenAndServe(cfg.HttpHost, mux); err != nil {
 			log.Fatalf("failed to listen and serve point service handler: %v", err)
 		}
 	}()
@@ -99,7 +81,7 @@ func main() {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(b)
 		})
-		if err = http.ListenAndServe(adminHost, adminServer); err != nil {
+		if err = http.ListenAndServe(cfg.AdminHost, adminServer); err != nil {
 			log.Fatalf("failed to listen and serve admin server: %v", err)
 		}
 	}()

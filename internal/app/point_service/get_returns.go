@@ -40,12 +40,6 @@ func (s *Implementation) GetReturns(ctx context.Context, req *desc.GetReturnsReq
 		res.Orders = append(res.Orders, &desc.Order{
 			OrderId:  order.OrderID,
 			ClientId: order.ClientID,
-			// CreatedAt:      order.CreatedAt,
-			// ExpiredAt:      order.ExpiredAt,
-			// Weight:         float32(order.Weight),
-			// Price:          order.Price,
-			// Packaging:      order.Packaging,
-			// AdditionalFilm: order.AdditionalFilm,
 		})
 	}
 	return res, nil

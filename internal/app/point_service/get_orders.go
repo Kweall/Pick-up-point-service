@@ -21,19 +21,10 @@ func (s *Implementation) GetOrders(ctx context.Context, req *desc.GetOrdersReque
 	res := &desc.GetOrdersResponse{
 		Orders: make([]*desc.Order, 0, len(orders)),
 	}
-	if len(orders) == 0 {
-		return nil, status.Error(codes.NotFound, "client not found")
-	}
 	for _, order := range orders {
 		res.Orders = append(res.Orders, &desc.Order{
 			OrderId:  order.OrderID,
 			ClientId: order.ClientID,
-			// CreatedAt:      order.CreatedAt,
-			// ExpiredAt:      order.ExpiredAt,
-			// Weight:         float32(order.Weight),
-			// Price:          order.Price,
-			// Packaging:      order.Packaging,
-			// AdditionalFilm: order.AdditionalFilm,
 		})
 	}
 	return res, nil

@@ -36,10 +36,7 @@ func main() {
 
 	ctx := context.Background()
 	md := metadataParse()
-	// ctx = metadata.NewOutgoingContext(ctx, metadata.New(md))
 	ctx = metadata.AppendToOutgoingContext(ctx, md...)
-
-	// resp, err := pointServiceClient.GetOrders(ctx, &point_service.GetOrdersRequest{})
 
 	var (
 		resp    proto.Message
