@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	point_service "homework/pkg/point-service/v1"
 	"log"
+	"time"
 
+	"github.com/spf13/pflag"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
@@ -15,9 +16,9 @@ import (
 )
 
 var (
-	methodFlag   = flag.String("method", "{}", "method in API")
-	dataFlag     = flag.String("data", "{}", "data in JSON format")
-	metadataFlag = flag.String("metadata", "{}", "metadata in JSON format")
+	methodFlag   = pflag.String("method", "{}", "method in API")
+	dataFlag     = pflag.String("data", "{}", "data in JSON format")
+	metadataFlag = pflag.String("metadata", "{}", "metadata in JSON format")
 )
 
 const (
@@ -25,7 +26,15 @@ const (
 )
 
 func main() {
-	flag.Parse()
+	pflag.Parse()
+	conf := newConfig(cliFlags)
+
+	prod, err := NewKafkaProducer(conf.kafka.Brokers)
+	if err != nil {
+		log.Fatalf("Failed to create Kafka producer: %v", err)
+	}
+	defer prod.Close()
+
 	conn, err := grpc.NewClient(grpcServerHost, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("failed to create grpc client: %v", err)
@@ -50,6 +59,8 @@ func main() {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
 		resp, respErr = pointServiceClient.AddOrder(ctx, req)
+		sendOrderEvent(prod, conf.producer.topic, "AddOrder", req.OrderId)
+
 	case "DeleteOrder":
 		req := &point_service.DeleteOrderRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
@@ -68,12 +79,16 @@ func main() {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
 		resp, respErr = pointServiceClient.GiveOrder(ctx, req)
+		sendOrderEvent(prod, conf.producer.topic, "GiveOrder", req.OrderIds)
+
 	case "AcceptReturn":
 		req := &point_service.AcceptReturnRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
 		resp, respErr = pointServiceClient.AcceptReturn(ctx, req)
+		sendOrderEvent(prod, conf.producer.topic, "AcceptReturn", req.OrderId)
+
 	case "GetReturns":
 		req := &point_service.GetReturnsRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
@@ -89,6 +104,23 @@ func main() {
 		log.Fatalf("failed to unmarshal data: %v", err)
 	}
 	log.Printf("resp: %v; err %v\n", string(data), respErr)
+}
+
+func sendOrderEvent(prod *KafkaProducer, topic, eventType string, id any) {
+	event := map[string]interface{}{
+		"eventType": eventType,
+		"id":        id,
+		"timestamp": time.Now().UnixNano(), // временная метка в миллисекундах
+	}
+	eventData, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("Failed to marshal event: %v", err)
+		return
+	}
+	err = prod.SendMessage(topic, eventType, string(eventData))
+	if err != nil {
+		log.Printf("Failed to send message: %v", err)
+	}
 }
 
 func metadataParse() []string {

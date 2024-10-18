@@ -1,15 +1,34 @@
 OUT_PATH:=$(CURDIR)/pkg
 LOCAL_BIN:=$(CURDIR)/bin
-
+DOCKER_YML:=$(CURDIR)/docker-compose.yml
+ENV_NAME:=route-256-hm-7
 # ---------------------------
 # Запуск базы данных в Docker
 # ---------------------------
 
-compose-up:
-	docker-compose up -d postgres
+# compose-up:
+# 	docker-compose up -d postgres
 
-compose-down:
-	docker-compose down
+# compose-down:
+# 	docker-compose down
+
+.PHONY: compose-up
+compose-up:
+	docker-compose -p $(ENV_NAME) -f $(DOCKER_YML) up -d
+
+.PHONY: compose-down
+compose-down: ## terminate local env
+	docker-compose -p $(ENV_NAME) -f $(DOCKER_YML) down
+
+.PHONY: compose-rm
+compose-rm: ## remove local env
+	docker-compose -p $(ENV_NAME) -f $(DOCKER_YML) rm -fvs
+
+.PHONY: compose-rs
+compose-rs: ## remove previously and start new local environment
+	make compose-rm
+	make compose-up
+
 
 compose-stop:
 	docker-compose stop postgres
