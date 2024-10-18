@@ -9,6 +9,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type KafkaProducerInterface interface {
+	SendMessage(topic, key, value string) error
+	Close() error
+}
+
 type KafkaProducer struct {
 	producer sarama.SyncProducer
 }

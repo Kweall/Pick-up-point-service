@@ -106,7 +106,7 @@ func main() {
 	log.Printf("resp: %v; err %v\n", string(data), respErr)
 }
 
-func sendOrderEvent(prod *KafkaProducer, topic, eventType string, id any) {
+func sendOrderEvent(prod KafkaProducerInterface, topic, eventType string, id any) {
 	event := map[string]interface{}{
 		"eventType": eventType,
 		"id":        id,
