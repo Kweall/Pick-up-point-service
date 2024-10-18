@@ -1,3 +1,7 @@
-/pvz
+/cmd/cli/myapp
 /storage/.DS_Store
 /.DS_Store
+/vendor.protogen
+/cmd/point-service/point-service
+/bin
+/postgres.session.sql

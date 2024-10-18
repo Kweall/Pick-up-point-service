@@ -1,0 +1,406 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Выдача заказов",
+    "description": "Сервис выполняет функции выдачи и принятия заказов для множества пользователей",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "PointService"
+    }
+  ],
+  "host": "localhost:7000",
+  "schemes": [
+    "http"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/AcceptReturn": {
+      "post": {
+        "summary": "Принятие возврата заказа",
+        "description": "Принимает идентификатор клиента и заказа, фиксирует дату возврата",
+        "operationId": "PointService_AcceptReturn",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pointAcceptReturnResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clientId",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "orderId",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "PointService"
+        ]
+      }
+    },
+    "/AddOrder": {
+      "post": {
+        "summary": "Добавление заказа",
+        "description": "Принимает идентификатор клиента и заказа, дату истечения хранения заказа, вес, цену, вариант упаковки и предложение для дополнительной пленки",
+        "operationId": "PointService_AddOrder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pointAddOrderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pointAddOrderRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PointService"
+        ],
+        "security": [
+          {
+            "api-token": []
+          }
+        ]
+      }
+    },
+    "/DeleteOrder": {
+      "post": {
+        "summary": "Удаление заказа",
+        "description": "Принимает идентификатор заказа и удаляет его",
+        "operationId": "PointService_DeleteOrder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pointDeleteOrderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "PointService"
+        ],
+        "security": [
+          {
+            "api-token": []
+          }
+        ]
+      }
+    },
+    "/GetOrders": {
+      "get": {
+        "summary": "Получение списка заказов",
+        "description": "Принимает идентификатор клиента и выдает список его заказов",
+        "operationId": "PointService_GetOrders",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pointGetOrdersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "clientId",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "PointService"
+        ]
+      }
+    },
+    "/GetReturns": {
+      "get": {
+        "summary": "Получение списка возвратов",
+        "description": "Принимает страницу списка общих возвратов",
+        "operationId": "PointService_GetReturns",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pointGetReturnsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "PointService"
+        ]
+      }
+    },
+    "/GiveOrder": {
+      "post": {
+        "summary": "Выдача заказов",
+        "description": "Принимает идентификатор(-ы) заказа(-ов) и фиксирует выдачу одному клиенту",
+        "operationId": "PointService_GiveOrder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pointGiveOrderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "orderIds",
+            "in": "query",
+            "required": true,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "int64"
+            },
+            "collectionFormat": "multi"
+          }
+        ],
+        "tags": [
+          "PointService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "pointAcceptReturnResponse": {
+      "type": "object"
+    },
+    "pointAddOrderRequest": {
+      "type": "object",
+      "properties": {
+        "clientId": {
+          "type": "string",
+          "format": "int64"
+        },
+        "orderId": {
+          "type": "string",
+          "format": "int64"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expiredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "weight": {
+          "type": "number",
+          "format": "float"
+        },
+        "price": {
+          "type": "string",
+          "format": "int64"
+        },
+        "packaging": {
+          "type": "string"
+        },
+        "additionalFilm": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "clientId",
+        "orderId",
+        "createdAt",
+        "expiredAt",
+        "weight",
+        "price",
+        "packaging"
+      ]
+    },
+    "pointAddOrderResponse": {
+      "type": "object"
+    },
+    "pointDeleteOrderResponse": {
+      "type": "object"
+    },
+    "pointGetOrdersResponse": {
+      "type": "object",
+      "properties": {
+        "orders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pointOrder"
+          }
+        }
+      }
+    },
+    "pointGetReturnsResponse": {
+      "type": "object",
+      "properties": {
+        "orders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pointOrder"
+          }
+        }
+      }
+    },
+    "pointGiveOrderResponse": {
+      "type": "object"
+    },
+    "pointOrder": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "format": "int64"
+        },
+        "clientId": {
+          "type": "string",
+          "format": "int64"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expiredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "receivedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "returnedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "weight": {
+          "type": "number",
+          "format": "float"
+        },
+        "price": {
+          "type": "string",
+          "format": "int64"
+        },
+        "packaging": {
+          "type": "string"
+        },
+        "additionalFilm": {
+          "type": "boolean"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "api-token": {
+      "type": "apiKey",
+      "description": "Авторизационный токен",
+      "name": "x-api-token",
+      "in": "header"
+    }
+  }
+}

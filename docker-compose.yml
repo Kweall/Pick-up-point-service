@@ -24,6 +24,9 @@ services:
       - postgres
     environment:
       - PSQL_DSN=postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+      - httpHost=127.0.0.1:7000
+      - grpcHost=127.0.0.1:7001
+      - adminHost127.0.0.1:7002
     ports:
       - "8080:8080"
     container_name: go_app
