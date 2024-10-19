@@ -59,7 +59,7 @@ func sendAcceptReturnEvent(ctx context.Context, pointServiceClient point_service
 		"eventType": eventType,
 		"clientId":  req.ClientId,
 		"orderId":   req.OrderId,
-		"timestamp": time.Now().UnixNano(),
+		"timestamp": time.Now().Truncate(time.Minute).UnixNano(),
 	}
 	eventData, err := json.Marshal(event)
 	if err != nil {
@@ -77,7 +77,7 @@ func sendGiveOrderEvent(ctx context.Context, pointServiceClient point_service.Po
 	event := map[string]interface{}{
 		"eventType": eventType,
 		"orderIds":  req.OrderIds,
-		"timestamp": time.Now().UnixNano(),
+		"timestamp": time.Now().Truncate(time.Minute).UnixNano(),
 	}
 	eventData, err := json.Marshal(event)
 	if err != nil {
@@ -101,7 +101,7 @@ func sendAddOrderEvent(ctx context.Context, pointServiceClient point_service.Poi
 		"price":           req.Price,
 		"packaging":       req.Packaging,
 		"additional_film": req.AdditionalFilm,
-		"timestamp":       time.Now().UnixNano(),
+		"timestamp":       time.Now().Truncate(time.Minute).UnixNano(),
 	}
 	eventData, err := json.Marshal(event)
 	if err != nil {
