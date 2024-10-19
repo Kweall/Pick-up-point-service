@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	point_service "homework/pkg/point-service/v1"
 	"log"
-	"time"
 
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc"
@@ -58,8 +57,7 @@ func main() {
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = pointServiceClient.AddOrder(ctx, req)
-		sendOrderEvent(prod, conf.producer.topic, "AddOrder", req.OrderId)
+		resp, respErr = sendAddOrderEvent(ctx, pointServiceClient, prod, conf.producer.topic, "AddOrder", req)
 
 	case "DeleteOrder":
 		req := &point_service.DeleteOrderRequest{}
@@ -67,27 +65,27 @@ func main() {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
 		resp, respErr = pointServiceClient.DeleteOrder(ctx, req)
+
 	case "GetOrders":
 		req := &point_service.GetOrdersRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
 		resp, respErr = pointServiceClient.GetOrders(ctx, req)
+
 	case "GiveOrders":
 		req := &point_service.GiveOrderRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = pointServiceClient.GiveOrder(ctx, req)
-		sendOrderEvent(prod, conf.producer.topic, "GiveOrder", req.OrderIds)
+		resp, respErr = sendGiveOrderEvent(ctx, pointServiceClient, prod, conf.producer.topic, "GiveOrder", req)
 
 	case "AcceptReturn":
 		req := &point_service.AcceptReturnRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = pointServiceClient.AcceptReturn(ctx, req)
-		sendOrderEvent(prod, conf.producer.topic, "AcceptReturn", req.OrderId)
+		resp, respErr = sendAcceptReturnEvent(ctx, pointServiceClient, prod, conf.producer.topic, "AcceptReturn", req)
 
 	case "GetReturns":
 		req := &point_service.GetReturnsRequest{}
@@ -95,31 +93,20 @@ func main() {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
 		resp, respErr = pointServiceClient.GetReturns(ctx, req)
+
 	default:
 		log.Fatalf("unknown command: %s", *methodFlag)
 	}
 
-	data, err := protojson.Marshal(resp)
-	if err != nil {
-		log.Fatalf("failed to unmarshal data: %v", err)
-	}
-	log.Printf("resp: %v; err %v\n", string(data), respErr)
-}
+	if resp == nil {
+		log.Printf("Received nil response")
+	} else {
+		data, err := protojson.Marshal(resp)
 
-func sendOrderEvent(prod KafkaProducerInterface, topic, eventType string, id any) {
-	event := map[string]interface{}{
-		"eventType": eventType,
-		"id":        id,
-		"timestamp": time.Now().UnixNano(), // временная метка в миллисекундах
-	}
-	eventData, err := json.Marshal(event)
-	if err != nil {
-		log.Printf("Failed to marshal event: %v", err)
-		return
-	}
-	err = prod.SendMessage(topic, eventType, string(eventData))
-	if err != nil {
-		log.Printf("Failed to send message: %v", err)
+		if err != nil {
+			log.Fatalf("failed to unmarshal data: %v", err)
+		}
+		log.Printf("resp: %v; err %v\n", string(data), respErr)
 	}
 }
 
