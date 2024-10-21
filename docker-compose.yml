@@ -80,6 +80,7 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - postgres
+      - kafka0
     environment:
       - PSQL_DSN=postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
       - httpHost=127.0.0.1:7000
@@ -94,3 +95,16 @@ services:
       - |
         env
         tail -f /dev/null
+  
+  notifier:
+    build:
+      context: .
+      dockerfile: ./cmd/notifier/Dockerfile
+    depends_on:
+      - kafka0
+      - postgres
+    environment:
+      - KAFKA_BROKERS=kafka0:29092
+      - POSTGRES_DSN=postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+    container_name: notifier
+

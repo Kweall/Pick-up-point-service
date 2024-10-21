@@ -50,6 +50,7 @@ require (
 require (
 	github.com/IBM/sarama v1.43.3
 	github.com/brianvoe/gofakeit/v6 v6.28.0
+	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/georgysavva/scany v1.2.2
 	github.com/golang/protobuf v1.5.4

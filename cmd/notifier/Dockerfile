@@ -8,12 +8,12 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o /app/cli ./cmd/point-cli/
+RUN go build -o /app/notifier ./cmd/notifier/
 
 FROM alpine:3.18
 
 WORKDIR /app
 
-COPY --from=builder /app/cli .
+COPY --from=builder /app/notifier .
 
-CMD ["./cli"]
+CMD ["./notifier"]
