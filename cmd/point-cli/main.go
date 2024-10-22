@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+
+	events "homework/internal/events"
 	point_service "homework/pkg/point-service/v1"
 	"log"
 
@@ -42,6 +44,7 @@ func main() {
 
 	pointServiceClient := point_service.NewPointServiceClient(conn)
 
+	eventLogger := events.NewEventLogger(prod, conf.producer.topic)
 	ctx := context.Background()
 	md := metadataParse()
 	ctx = metadata.AppendToOutgoingContext(ctx, md...)
@@ -57,7 +60,7 @@ func main() {
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = sendAddOrderEvent(ctx, pointServiceClient, prod, conf.producer.topic, "AddOrder", req)
+		resp, respErr = eventLogger.LogAddOrderEvent(ctx, pointServiceClient, req)
 
 	case "DeleteOrder":
 		req := &point_service.DeleteOrderRequest{}
@@ -78,14 +81,14 @@ func main() {
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = sendGiveOrderEvent(ctx, pointServiceClient, prod, conf.producer.topic, "GiveOrder", req)
+		resp, respErr = eventLogger.LogGiveOrderEvent(ctx, pointServiceClient, req)
 
 	case "AcceptReturn":
 		req := &point_service.AcceptReturnRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = sendAcceptReturnEvent(ctx, pointServiceClient, prod, conf.producer.topic, "AcceptReturn", req)
+		resp, respErr = eventLogger.LogAcceptReturnEvent(ctx, pointServiceClient, req)
 
 	case "GetReturns":
 		req := &point_service.GetReturnsRequest{}

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	events "homework/internal/events"
 	point_service "homework/pkg/point-service/v1"
 
 	"github.com/stretchr/testify/mock"
@@ -61,12 +62,12 @@ func (m *MockPointServiceClient) GiveOrder(ctx context.Context, req *point_servi
 	return args.Get(0).(*point_service.GiveOrderResponse), args.Error(1)
 }
 
-func TestSendAddOrderEvent(t *testing.T) {
+func TestLogAddOrderEvent(t *testing.T) {
 	mockProducer := new(MockKafkaProducer)
 	mockClient := new(MockPointServiceClient)
 	ctx := context.Background()
 	topic := "pvz.events-log"
-	eventType := "AddOrder"
+	eventLogger := events.NewEventLogger(mockProducer, topic)
 	additionalFilm := true
 	req := &point_service.AddOrderRequest{
 		ClientId:       1,
@@ -78,25 +79,24 @@ func TestSendAddOrderEvent(t *testing.T) {
 		AdditionalFilm: &additionalFilm,
 	}
 
-	event := map[string]interface{}{
-		"eventType":       eventType,
-		"clientId":        req.ClientId,
-		"orderId":         req.OrderId,
-		"expiredAt":       req.ExpiredAt.AsTime().UnixNano(),
-		"weight":          req.Weight,
-		"price":           req.Price,
-		"packaging":       req.Packaging,
-		"additional_film": req.AdditionalFilm,
-		"timestamp":       time.Now().Truncate(time.Minute).UnixNano(),
+	event := events.AddOrderEvent{
+		ClientId:       req.ClientId,
+		OrderId:        req.OrderId,
+		ExpiredAt:      req.ExpiredAt.AsTime().UnixNano(),
+		Weight:         req.Weight,
+		Price:          req.Price,
+		Packaging:      req.Packaging,
+		AdditionalFilm: req.AdditionalFilm,
+		Timestamp:      time.Now().Truncate(time.Minute).UnixNano(),
 	}
 
 	eventData, err := json.Marshal(event)
 	require.NoError(t, err)
 
-	mockProducer.On("SendMessage", topic, eventType, string(eventData)).Return(nil)
+	mockProducer.On("SendMessage", topic, "AddOrder", string(eventData)).Return(nil)
 	mockClient.On("AddOrder", ctx, req).Return(&point_service.AddOrderResponse{}, nil)
 
-	resp, err := sendAddOrderEvent(ctx, mockClient, mockProducer, topic, eventType, req)
+	resp, err := eventLogger.LogAddOrderEvent(ctx, mockClient, req)
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -104,29 +104,28 @@ func TestSendAddOrderEvent(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
-func TestSendGiveOrderEvent(t *testing.T) {
+func TestLogGiveOrderEvent(t *testing.T) {
 	mockProducer := new(MockKafkaProducer)
 	mockClient := new(MockPointServiceClient)
 	ctx := context.Background()
 	topic := "pvz.events-log"
-	eventType := "GiveOrder"
+	eventLogger := events.NewEventLogger(mockProducer, topic)
 	req := &point_service.GiveOrderRequest{
 		OrderIds: []int64{1001},
 	}
 
-	event := map[string]interface{}{
-		"eventType": eventType,
-		"orderIds":  req.OrderIds,
-		"timestamp": time.Now().Truncate(time.Minute).UnixNano(),
+	event := events.GiveOrderEvent{
+		OrderIds:  req.OrderIds,
+		Timestamp: time.Now().Truncate(time.Minute).UnixNano(),
 	}
 
 	eventData, err := json.Marshal(event)
 	require.NoError(t, err)
 
-	mockProducer.On("SendMessage", topic, eventType, string(eventData)).Return(nil)
+	mockProducer.On("SendMessage", topic, "GiveOrder", string(eventData)).Return(nil)
 	mockClient.On("GiveOrder", ctx, req).Return(&point_service.GiveOrderResponse{}, nil)
 
-	resp, err := sendGiveOrderEvent(ctx, mockClient, mockProducer, topic, eventType, req)
+	resp, err := eventLogger.LogGiveOrderEvent(ctx, mockClient, req)
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
@@ -134,34 +133,62 @@ func TestSendGiveOrderEvent(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
-func TestSendAcceptReturnEvent(t *testing.T) {
+func TestLogAcceptReturnEvent(t *testing.T) {
 	mockProducer := new(MockKafkaProducer)
 	mockClient := new(MockPointServiceClient)
 	ctx := context.Background()
 	topic := "pvz.events-log"
-	eventType := "AcceptReturn"
+	eventLogger := events.NewEventLogger(mockProducer, topic)
 	req := &point_service.AcceptReturnRequest{
 		OrderId:  2001,
 		ClientId: 1,
 	}
 
-	event := map[string]interface{}{
-		"eventType": eventType,
-		"clientId":  req.ClientId,
-		"orderId":   req.OrderId,
-		"timestamp": time.Now().Truncate(time.Minute).UnixNano(),
+	event := events.AcceptReturnEvent{
+		ClientId:  req.ClientId,
+		OrderId:   req.OrderId,
+		Timestamp: time.Now().Truncate(time.Minute).UnixNano(),
 	}
 
 	eventData, err := json.Marshal(event)
 	require.NoError(t, err)
 
-	mockProducer.On("SendMessage", topic, eventType, string(eventData)).Return(nil)
+	mockProducer.On("SendMessage", topic, "AcceptReturn", string(eventData)).Return(nil)
 	mockClient.On("AcceptReturn", ctx, req).Return(&point_service.AcceptReturnResponse{}, nil)
 
-	resp, err := sendAcceptReturnEvent(ctx, mockClient, mockProducer, topic, eventType, req)
+	resp, err := eventLogger.LogAcceptReturnEvent(ctx, mockClient, req)
 
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	mockProducer.AssertExpectations(t)
 	mockClient.AssertExpectations(t)
+}
+
+func TestNewKafkaProducer(t *testing.T) {
+	brokers := []string{"localhost:9092"}
+	producer, err := NewKafkaProducer(brokers)
+	require.NoError(t, err)
+	require.NotNil(t, producer)
+
+	err = producer.Close()
+	require.NoError(t, err)
+}
+
+func TestNewKafkaProducerFailure(t *testing.T) {
+	brokers := []string{"invalid-broker"}
+	producer, err := NewKafkaProducer(brokers)
+	require.Error(t, err)
+	require.Nil(t, producer)
+}
+
+func TestKafkaProducerSendMessage(t *testing.T) {
+	brokers := []string{"localhost:9092"}
+	producer, err := NewKafkaProducer(brokers)
+	require.NoError(t, err)
+
+	err = producer.SendMessage("test-topic", "test-key", "test-message")
+	require.NoError(t, err)
+
+	err = producer.Close()
+	require.NoError(t, err)
 }
