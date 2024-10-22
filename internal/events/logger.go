@@ -49,10 +49,10 @@ func NewEventLogger(producer KafkaProducer, topic string) *EventLogger {
 	}
 }
 
-func (e *EventLogger) LogAddOrderEvent(ctx context.Context, client point_service.PointServiceClient, req *point_service.AddOrderRequest) (resp proto.Message, respErr error) {
-	resp, respErr = client.AddOrder(ctx, req)
-	if respErr != nil {
-		return nil, respErr
+func (e *EventLogger) LogAddOrderEvent(ctx context.Context, client point_service.PointServiceClient, req *point_service.AddOrderRequest) (proto.Message, error) {
+	resp, err := client.AddOrder(ctx, req)
+	if err != nil {
+		return nil, err
 	}
 
 	event := AddOrderEvent{
@@ -76,13 +76,13 @@ func (e *EventLogger) LogAddOrderEvent(ctx context.Context, client point_service
 		return nil, fmt.Errorf("failed to send Kafka message: %w", err)
 	}
 
-	return resp, respErr
+	return resp, nil
 }
 
-func (e *EventLogger) LogGiveOrderEvent(ctx context.Context, client point_service.PointServiceClient, req *point_service.GiveOrderRequest) (resp proto.Message, respErr error) {
-	resp, respErr = client.GiveOrder(ctx, req)
-	if respErr != nil {
-		return nil, respErr
+func (e *EventLogger) LogGiveOrderEvent(ctx context.Context, client point_service.PointServiceClient, req *point_service.GiveOrderRequest) (proto.Message, error) {
+	resp, err := client.GiveOrder(ctx, req)
+	if err != nil {
+		return nil, err
 	}
 
 	event := GiveOrderEvent{
@@ -100,13 +100,13 @@ func (e *EventLogger) LogGiveOrderEvent(ctx context.Context, client point_servic
 		return nil, fmt.Errorf("failed to send Kafka message: %w", err)
 	}
 
-	return resp, respErr
+	return resp, nil
 }
 
-func (e *EventLogger) LogAcceptReturnEvent(ctx context.Context, client point_service.PointServiceClient, req *point_service.AcceptReturnRequest) (resp proto.Message, respErr error) {
-	resp, respErr = client.AcceptReturn(ctx, req)
-	if respErr != nil {
-		return nil, respErr
+func (e *EventLogger) LogAcceptReturnEvent(ctx context.Context, client point_service.PointServiceClient, req *point_service.AcceptReturnRequest) (proto.Message, error) {
+	resp, err := client.AcceptReturn(ctx, req)
+	if err != nil {
+		return nil, err
 	}
 
 	event := AcceptReturnEvent{
@@ -125,5 +125,5 @@ func (e *EventLogger) LogAcceptReturnEvent(ctx context.Context, client point_ser
 		return nil, fmt.Errorf("failed to send Kafka message: %w", err)
 	}
 
-	return resp, respErr
+	return resp, nil
 }
