@@ -52,7 +52,7 @@ func NewEventLogger(producer KafkaProducer, topic string) *EventLogger {
 func (e *EventLogger) LogAddOrderEvent(ctx context.Context, client point_service.PointServiceClient, req *point_service.AddOrderRequest) (proto.Message, error) {
 	resp, err := client.AddOrder(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to add order: %w", err)
 	}
 
 	event := AddOrderEvent{
@@ -82,7 +82,7 @@ func (e *EventLogger) LogAddOrderEvent(ctx context.Context, client point_service
 func (e *EventLogger) LogGiveOrderEvent(ctx context.Context, client point_service.PointServiceClient, req *point_service.GiveOrderRequest) (proto.Message, error) {
 	resp, err := client.GiveOrder(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to give order(s): %w", err)
 	}
 
 	event := GiveOrderEvent{
@@ -106,7 +106,7 @@ func (e *EventLogger) LogGiveOrderEvent(ctx context.Context, client point_servic
 func (e *EventLogger) LogAcceptReturnEvent(ctx context.Context, client point_service.PointServiceClient, req *point_service.AcceptReturnRequest) (proto.Message, error) {
 	resp, err := client.AcceptReturn(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to accept return: %w", err)
 	}
 
 	event := AcceptReturnEvent{
