@@ -34,11 +34,11 @@ func main() {
 
 	app.InitMetrics()
 	go app.StartMetricsEndpoint()
-	app.IncrementOrdersGiven()
 
 	flag.Parse()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	app.MustSetup(ctx, "point-service")
 	pool, err := pgxpool.Connect(ctx, cfg.PsqlDSN)
 	if err != nil {
 		log.Fatal(err)

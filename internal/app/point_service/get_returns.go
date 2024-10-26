@@ -2,7 +2,6 @@ package point_service
 
 import (
 	"context"
-	"encoding/json"
 	desc "homework/pkg/point-service/v1"
 
 	"google.golang.org/grpc/codes"
@@ -15,17 +14,6 @@ func (s *Implementation) GetReturns(ctx context.Context, req *desc.GetReturnsReq
 	if err := req.Validate(); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-
-	cacheKey := "all_returns"
-
-	cachedData, err := s.cache.Get(ctx, cacheKey)
-	if err == nil && cachedData != "" {
-		var cachedResponse desc.GetReturnsResponse
-		if err := json.Unmarshal([]byte(cachedData), &cachedResponse); err == nil {
-			return &cachedResponse, nil
-		}
-	}
-
 	orders, err := s.storage.GetReturns(ctx)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, err.Error())
@@ -53,12 +41,6 @@ func (s *Implementation) GetReturns(ctx context.Context, req *desc.GetReturnsReq
 			OrderId:  order.OrderID,
 			ClientId: order.ClientID,
 		})
-	}
-	dataToCache, err := json.Marshal(res)
-	if err == nil {
-		if err := s.cache.Set(ctx, cacheKey, string(dataToCache)); err != nil {
-			return nil, status.Error(codes.Aborted, err.Error())
-		}
 	}
 	return res, nil
 }

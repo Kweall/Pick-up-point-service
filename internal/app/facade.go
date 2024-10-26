@@ -46,7 +46,7 @@ func (s *storageFacade) AddOrder(ctx context.Context, req *postgres.Order) error
 	})
 }
 
-func (s *storageFacade) DeleteOrder(ctx context.Context, orderID int64) error {
+func (s *storageFacade) DeleteOrder(ctx context.Context, orderID int64) (int64, error) {
 	return s.pgRepository.DeleteOrder(ctx, orderID)
 }
 
