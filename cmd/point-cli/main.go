@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
+
+	events "homework/internal/events"
 	point_service "homework/pkg/point-service/v1"
 	"log"
 
+	"github.com/spf13/pflag"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
@@ -15,9 +17,9 @@ import (
 )
 
 var (
-	methodFlag   = flag.String("method", "{}", "method in API")
-	dataFlag     = flag.String("data", "{}", "data in JSON format")
-	metadataFlag = flag.String("metadata", "{}", "metadata in JSON format")
+	methodFlag   = pflag.String("method", "{}", "method in API")
+	dataFlag     = pflag.String("data", "{}", "data in JSON format")
+	metadataFlag = pflag.String("metadata", "{}", "metadata in JSON format")
 )
 
 const (
@@ -25,7 +27,15 @@ const (
 )
 
 func main() {
-	flag.Parse()
+	pflag.Parse()
+	conf := newConfig(cliFlags)
+
+	prod, err := NewKafkaProducer(conf.kafka.Brokers)
+	if err != nil {
+		log.Fatalf("Failed to create Kafka producer: %v", err)
+	}
+	defer prod.Close()
+
 	conn, err := grpc.NewClient(grpcServerHost, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("failed to create grpc client: %v", err)
@@ -34,6 +44,7 @@ func main() {
 
 	pointServiceClient := point_service.NewPointServiceClient(conn)
 
+	eventLogger := events.NewEventLogger(prod, conf.producer.topic)
 	ctx := context.Background()
 	md := metadataParse()
 	ctx = metadata.AppendToOutgoingContext(ctx, md...)
@@ -49,46 +60,57 @@ func main() {
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = pointServiceClient.AddOrder(ctx, req)
+		resp, respErr = eventLogger.LogAddOrderEvent(ctx, pointServiceClient, req)
+
 	case "DeleteOrder":
 		req := &point_service.DeleteOrderRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
 		resp, respErr = pointServiceClient.DeleteOrder(ctx, req)
+
 	case "GetOrders":
 		req := &point_service.GetOrdersRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
 		resp, respErr = pointServiceClient.GetOrders(ctx, req)
+
 	case "GiveOrders":
 		req := &point_service.GiveOrderRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = pointServiceClient.GiveOrder(ctx, req)
+		resp, respErr = eventLogger.LogGiveOrderEvent(ctx, pointServiceClient, req)
+
 	case "AcceptReturn":
 		req := &point_service.AcceptReturnRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
-		resp, respErr = pointServiceClient.AcceptReturn(ctx, req)
+		resp, respErr = eventLogger.LogAcceptReturnEvent(ctx, pointServiceClient, req)
+
 	case "GetReturns":
 		req := &point_service.GetReturnsRequest{}
 		if err := protojson.Unmarshal([]byte(*dataFlag), req); err != nil {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
 		resp, respErr = pointServiceClient.GetReturns(ctx, req)
+
 	default:
 		log.Fatalf("unknown command: %s", *methodFlag)
 	}
 
-	data, err := protojson.Marshal(resp)
-	if err != nil {
-		log.Fatalf("failed to unmarshal data: %v", err)
+	if resp == nil {
+		log.Printf("Received nil response")
+	} else {
+		data, err := protojson.Marshal(resp)
+
+		if err != nil {
+			log.Fatalf("failed to unmarshal data: %v", err)
+		}
+		log.Printf("resp: %v; err %v\n", string(data), respErr)
 	}
-	log.Printf("resp: %v; err %v\n", string(data), respErr)
 }
 
 func metadataParse() []string {
