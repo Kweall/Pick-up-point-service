@@ -54,25 +54,38 @@ services:
       cub kafka-ready -b kafka0:29092 1 30 && \
       kafka-topics --create --topic pvz.events-log --partitions 1 --replication-factor 1 --if-not-exists --bootstrap-server kafka0:29092'"
 
-  # go-consumer-1:
-  #   container_name: route256-go-consumer-1
-  #   image: go-consumer-image
-  #   build:
-  #     context: ./../../
-  #     dockerfile: ./build/dev/consumer-group/Dockerfile
+  redis:
+    image: redis
+    command: redis-server --requirepass qwerty
+    volumes:
+      - /tmp/redis/data:/data
+      - /tmp/redis/redis.conf:/redis-stack.conf
+    ports:
+      - "6379:6379"
 
-  # go-consumer-2:
-  #   container_name: route256-go-consumer-2
-  #   image: go-consumer-image
-  #   depends_on:
-  #     - go-consumer-1
+  jaeger:
+    image: jaegertracing/all-in-one
+    ports:
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+      - "14250:14250"
+      - "14268:14268"
+      - "14269:14269"
+      - "9411:9411"
 
-  # go-consumer-3:
-  #   container_name: route256-go-consumer-3
-  #   image: go-consumer-image
-  #   depends_on:
-  #     - go-consumer-1
-
+  vault-server:
+    image: vault:1.13.3
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_ADDR: "http://0.0.0.0:8200"
+      VAULT_DEV_ROOT_TOKEN_ID: "root"
+    cap_add:
+      - IPC_LOCK
 
   app:
     build:
@@ -88,6 +101,7 @@ services:
       - adminHost127.0.0.1:7002
     ports:
       - "8080:8080"
+      - "7002:7002"
     container_name: go_app
     command:
       - /bin/sh
@@ -108,3 +122,22 @@ services:
       - POSTGRES_DSN=postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
     container_name: notifier
 
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - app
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus

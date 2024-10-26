@@ -30,5 +30,9 @@ func (s *Implementation) AcceptReturn(ctx context.Context, req *desc.AcceptRetur
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+	cacheKey := "all_returns"
+	if err := s.cache.Invalidate(ctx, cacheKey); err != nil {
+		return nil, status.Error(codes.Internal, "failed to delete cache for returns")
+	}
 	return &desc.AcceptReturnResponse{}, nil
 }

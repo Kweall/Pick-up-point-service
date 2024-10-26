@@ -7,10 +7,12 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"homework/internal/app"
 	"homework/internal/app/mw"
 	"homework/internal/app/point_service"
+	"homework/internal/cache"
 	"homework/internal/config"
 	"homework/internal/storage/postgres"
 	desc "homework/pkg/point-service/v1"
@@ -30,6 +32,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	app.InitMetrics()
+	go app.StartMetricsEndpoint()
+	app.IncrementOrdersGiven()
+
 	flag.Parse()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -39,9 +45,10 @@ func main() {
 	}
 	defer pool.Close()
 
+	redisCache := cache.NewRedisCache("localhost:6379", "qwerty", 0, 10*time.Minute)
 	storageFacade := newStorageFacade(pool)
 
-	pointService := point_service.NewImplementation(storageFacade)
+	pointService := point_service.NewImplementation(storageFacade, redisCache)
 
 	lis, err := net.Listen("tcp", cfg.GrpcHost)
 	if err != nil {

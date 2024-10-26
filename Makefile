@@ -145,4 +145,12 @@ run:
 
 all: deps generate build run
 
+.PHONY: run-prometheus
+run-prometheus:
+	prometheus --config.file=./config/prometheus.yaml
+
+.PHONY: run-grafana
+run-grafana:
+	brew services start grafana
+
 .PHONY: deps generate build run lint all clean test coverage
