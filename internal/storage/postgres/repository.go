@@ -51,21 +51,29 @@ func (r *PgRepository) AddOrderHistory(ctx context.Context, orderID int64) error
 	return nil
 }
 
-func (r *PgRepository) DeleteOrder(ctx context.Context, orderID int64) error {
+func (r *PgRepository) DeleteOrder(ctx context.Context, orderID int64) (clientID int64, err error) {
 	tx := r.txManager.GetQueryEngine(ctx)
+
+	err = tx.QueryRow(ctx, `
+        select client_id from orders where order_id = $1
+    `, orderID).Scan(&clientID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to query client ID for order ID %d: %w", orderID, err)
+	}
+
 	result, err := tx.Exec(ctx, `
 		delete from orders where order_id = $1
 	`, orderID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
-		return ErrorNotFoundOrder
+		return 0, ErrorNotFoundOrder
 	}
 	fmt.Printf("Order %v has been deleted from database\n", orderID)
-	return nil
+	return clientID, nil
 }
 
 func (r *PgRepository) GetOrders(ctx context.Context, clientID int64) ([]*Order, error) {

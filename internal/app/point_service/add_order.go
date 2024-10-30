@@ -2,6 +2,7 @@ package point_service
 
 import (
 	"context"
+	"fmt"
 	"homework/internal/app"
 	"homework/internal/storage/postgres"
 	desc "homework/pkg/point-service/v1"
@@ -60,6 +61,10 @@ func (s *Implementation) AddOrder(ctx context.Context, req *desc.AddOrderRequest
 	})
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+	cacheKey := fmt.Sprintf("orders:client:%d", req.ClientId)
+	if err := s.cache.Invalidate(ctx, cacheKey); err != nil {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to delete cache for client %d: %v", req.ClientId, err))
 	}
 	return &desc.AddOrderResponse{}, nil
 }

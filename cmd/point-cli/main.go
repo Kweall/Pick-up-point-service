@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"homework/internal/app"
 	events "homework/internal/events"
 	point_service "homework/pkg/point-service/v1"
 	"log"
@@ -82,6 +83,9 @@ func main() {
 			log.Fatalf("failed to unmarshal data: %v", err)
 		}
 		resp, respErr = eventLogger.LogGiveOrderEvent(ctx, pointServiceClient, req)
+		if respErr == nil {
+			app.IncrementOrdersGiven()
+		}
 
 	case "AcceptReturn":
 		req := &point_service.AcceptReturnRequest{}
